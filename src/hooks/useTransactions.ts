@@ -23,6 +23,7 @@ interface Transaction {
   account_type?: string;
   account_subtype?: string;
   institution_name?: string;
+  name?: string; // Some transactions might have name instead of merchant_name
 }
 
 interface TransactionFilter {
@@ -160,6 +161,107 @@ export const useTransactions = (user: User | null) => {
         account_type: 'depository',
         account_subtype: 'checking',
         institution_name: 'Demo Bank'
+      },
+      // Add more demo transactions
+      {
+        transaction_id: 'demo-tx-6',
+        account_id: 'demo-checking',
+        plaid_transaction_id: 'demo-tx-6',
+        amount: 85.75,
+        description: 'Dinner',
+        merchant_name: 'Olive Garden',
+        category: 'Food and Drink',
+        subcategory: 'Restaurants',
+        date: yesterday.toISOString().split('T')[0],
+        iso_currency_code: 'USD',
+        is_pending: false,
+        location: null,
+        payment_meta: null,
+        created_at: yesterday.toISOString(),
+        account_name: 'Primary Checking',
+        account_type: 'depository',
+        account_subtype: 'checking',
+        institution_name: 'Demo Bank'
+      },
+      {
+        transaction_id: 'demo-tx-7',
+        account_id: 'demo-checking',
+        plaid_transaction_id: 'demo-tx-7',
+        amount: 129.99,
+        description: 'Clothing',
+        merchant_name: 'Nordstrom',
+        category: 'Shopping',
+        subcategory: 'Clothing',
+        date: twoDaysAgo.toISOString().split('T')[0],
+        iso_currency_code: 'USD',
+        is_pending: false,
+        location: null,
+        payment_meta: null,
+        created_at: twoDaysAgo.toISOString(),
+        account_name: 'Primary Checking',
+        account_type: 'depository',
+        account_subtype: 'checking',
+        institution_name: 'Demo Bank'
+      },
+      {
+        transaction_id: 'demo-tx-8',
+        account_id: 'demo-checking',
+        plaid_transaction_id: 'demo-tx-8',
+        amount: 9.99,
+        description: 'Spotify',
+        merchant_name: 'Spotify',
+        category: 'Entertainment',
+        subcategory: 'Subscription',
+        date: threeDaysAgo.toISOString().split('T')[0],
+        iso_currency_code: 'USD',
+        is_pending: false,
+        location: null,
+        payment_meta: null,
+        created_at: threeDaysAgo.toISOString(),
+        account_name: 'Primary Checking',
+        account_type: 'depository',
+        account_subtype: 'checking',
+        institution_name: 'Demo Bank'
+      },
+      {
+        transaction_id: 'demo-tx-9',
+        account_id: 'demo-checking',
+        plaid_transaction_id: 'demo-tx-9',
+        amount: 1200.00,
+        description: 'Rent',
+        merchant_name: 'Apartment Management',
+        category: 'Housing',
+        subcategory: 'Rent',
+        date: fourDaysAgo.toISOString().split('T')[0],
+        iso_currency_code: 'USD',
+        is_pending: false,
+        location: null,
+        payment_meta: null,
+        created_at: fourDaysAgo.toISOString(),
+        account_name: 'Primary Checking',
+        account_type: 'depository',
+        account_subtype: 'checking',
+        institution_name: 'Demo Bank'
+      },
+      {
+        transaction_id: 'demo-tx-10',
+        account_id: 'demo-checking',
+        plaid_transaction_id: 'demo-tx-10',
+        amount: 65.00,
+        description: 'Internet',
+        merchant_name: 'Comcast',
+        category: 'Utilities',
+        subcategory: 'Internet',
+        date: fourDaysAgo.toISOString().split('T')[0],
+        iso_currency_code: 'USD',
+        is_pending: false,
+        location: null,
+        payment_meta: null,
+        created_at: fourDaysAgo.toISOString(),
+        account_name: 'Primary Checking',
+        account_type: 'depository',
+        account_subtype: 'checking',
+        institution_name: 'Demo Bank'
       }
     ];
     
@@ -191,13 +293,6 @@ export const useTransactions = (user: User | null) => {
       const endDate = filters?.endDate || defaultEndDate;
       const accountId = filters?.accountId;
 
-      console.log('Fetching transactions:', {
-        userId: user.id,
-        startDate,
-        endDate,
-        accountId: accountId || 'all'
-      });
-
       // Check if we can use the direct transactions table
       try {
         const { count, error: countError } = await supabase
@@ -206,8 +301,6 @@ export const useTransactions = (user: User | null) => {
 
         if (!countError) {
           // We can use the transactions table directly
-          console.log('Using transactions table directly');
-          
           let query = supabase
             .from('transactions')
             .select(`
@@ -254,6 +347,7 @@ export const useTransactions = (user: User | null) => {
           }));
 
           setTransactions(formattedTransactions);
+          setLoading(false);
           return;
         }
       } catch (directError) {
@@ -262,8 +356,6 @@ export const useTransactions = (user: User | null) => {
       }
 
       // Fallback to edge function
-      console.log('Falling back to edge function for transactions');
-      
       try {
         const { data, error: fetchError } = await supabase.functions.invoke('plaid-get-transactions', {
           body: {
@@ -278,11 +370,6 @@ export const useTransactions = (user: User | null) => {
           console.error('Transactions fetch error:', fetchError);
           throw new Error(fetchError.message || 'Failed to fetch transactions');
         }
-
-        console.log('Transactions fetched:', {
-          count: data?.transactions?.length || 0,
-          accounts: data?.accounts?.length || 0
-        });
 
         setTransactions(data?.transactions || []);
       } catch (edgeFunctionError) {
@@ -304,9 +391,11 @@ export const useTransactions = (user: User | null) => {
     const categoryTotals = new Map<string, number>();
     
     transactions.forEach(transaction => {
-      const category = transaction.category || 'Other';
-      const amount = Math.abs(transaction.amount);
-      categoryTotals.set(category, (categoryTotals.get(category) || 0) + amount);
+      if (transaction.amount > 0) { // Only count expenses (positive amounts in Plaid)
+        const category = transaction.category || 'Other';
+        const amount = transaction.amount;
+        categoryTotals.set(category, (categoryTotals.get(category) || 0) + amount);
+      }
     });
 
     return Array.from(categoryTotals.entries())

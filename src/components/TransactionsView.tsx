@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar,
@@ -47,11 +47,11 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ user }) => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const handleRefresh = () => {
-    fetchTransactions(
-      dateRange.start,
-      dateRange.end,
-      selectedAccount === 'all' ? undefined : selectedAccount
-    );
+    fetchTransactions({
+      startDate: dateRange.start,
+      endDate: dateRange.end,
+      accountId: selectedAccount === 'all' ? undefined : selectedAccount
+    });
   };
 
   const handleDateRangeChange = (field: 'start' | 'end', value: string) => {
@@ -60,25 +60,25 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ user }) => {
     
     // Auto-fetch when date range changes
     setTimeout(() => {
-      fetchTransactions(
-        newDateRange.start,
-        newDateRange.end,
-        selectedAccount === 'all' ? undefined : selectedAccount
-      );
+      fetchTransactions({
+        startDate: newDateRange.start,
+        endDate: newDateRange.end,
+        accountId: selectedAccount === 'all' ? undefined : selectedAccount
+      });
     }, 500);
   };
 
   // Filter and sort transactions
   const filteredTransactions = transactions
     .filter(transaction => {
-      const matchesSearch = transaction.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      const matchesSearch = transaction.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            transaction.merchant_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           transaction.category?.some(cat => cat.toLowerCase().includes(searchTerm.toLowerCase()));
+                           transaction.category?.toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesAccount = selectedAccount === 'all' || transaction.account_id === selectedAccount;
       
       const matchesCategory = selectedCategory === 'all' || 
-                             transaction.category?.includes(selectedCategory);
+                             transaction.category === selectedCategory;
       
       return matchesSearch && matchesAccount && matchesCategory;
     })
@@ -93,7 +93,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ user }) => {
           comparison = Math.abs(a.amount) - Math.abs(b.amount);
           break;
         case 'name':
-          comparison = a.name.localeCompare(b.name);
+          comparison = (a.name || '').localeCompare(b.name || '');
           break;
       }
       
@@ -101,7 +101,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ user }) => {
     });
 
   const categories = Array.from(new Set(
-    transactions.flatMap(t => t.category || [])
+    transactions.map(t => t.category).filter(Boolean)
   )).sort();
 
   const formatCurrency = (amount: number) => {
@@ -297,7 +297,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ user }) => {
             >
               <option value="all">All Accounts</option>
               {bankAccounts.map(account => (
-                <option key={account.id} value={account.plaid_account_id}>
+                <option key={account.id} value={account.id}>
                   {account.name}
                 </option>
               ))}
@@ -409,7 +409,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ user }) => {
                           <div className="flex items-center space-x-2 text-sm text-gray-600">
                             <span>{transaction.account_name}</span>
                             <span>•</span>
-                            <span>{transaction.category?.[0] || 'Other'}</span>
+                            <span>{transaction.category || 'Other'}</span>
                             <span>•</span>
                             <span>{formatDate(transaction.date)}</span>
                           </div>
@@ -419,7 +419,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ user }) => {
                         <div className={`font-semibold ${colorClass}`}>
                           {transaction.amount < 0 ? '+' : '-'}{formatCurrency(transaction.amount)}
                         </div>
-                        {transaction.pending && (
+                        {transaction.is_pending && (
                           <div className="text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded mt-1">
                             Pending
                           </div>
