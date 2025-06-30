@@ -1,452 +1,368 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, 
-  MessageSquare, 
+  Target, 
+  Trophy, 
   Award, 
-  TrendingUp, 
-  Heart, 
   Share2, 
-  ThumbsUp, 
-  Send, 
+  Plus, 
+  CheckCircle, 
+  Clock, 
+  Calendar, 
+  ArrowRight, 
+  UserPlus, 
+  X, 
+  Mail, 
+  Search, 
   Filter, 
-  Search,
-  User as UserIcon,
-  Calendar,
-  Clock,
-  Bookmark,
-  MoreHorizontal,
-  ChevronDown,
-  Tag,
+  ChevronDown, 
+  Star, 
   Zap,
-  X
+  MessageCircle,
+  Bell,
+  Settings,
+  UserCheck,
+  ShieldCheck,
+  Lock
 } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { useUserProfile } from '../hooks/useUserProfile';
-import { useXP } from '../hooks/useXP';
 
 interface CommunityPageProps {
   user: User;
-  onXPUpdate?: (points: number) => void;
-}
-
-interface Post {
-  id: string;
-  author: {
-    name: string;
-    avatar: string;
-    level: number;
-    belt: string;
-  };
-  content: string;
-  timestamp: Date;
-  likes: number;
-  comments: number;
-  tags: string[];
-  liked: boolean;
-  bookmarked: boolean;
-}
-
-interface Comment {
-  id: string;
-  author: {
-    name: string;
-    avatar: string;
-  };
-  content: string;
-  timestamp: Date;
-  likes: number;
+  onXPUpdate: (points: number) => void;
 }
 
 const CommunityPage: React.FC<CommunityPageProps> = ({ user, onXPUpdate }) => {
-  const { getDisplayName } = useUserProfile(user);
-  const { getCurrentLevel, getBeltRank } = useXP(user);
-  const [activeTab, setActiveTab] = useState<'feed' | 'challenges' | 'leaderboard'>('feed');
-  const [newPostContent, setNewPostContent] = useState('');
+  const [activeTab, setActiveTab] = useState<'circles' | 'quests' | 'leaderboard' | 'badges' | 'collaboration'>('circles');
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showCreateCircleModal, setShowCreateCircleModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  const [showTagFilter, setShowTagFilter] = useState(false);
-  const [posts, setPosts] = useState<Post[]>(generateSamplePosts());
-  const [expandedPost, setExpandedPost] = useState<string | null>(null);
-  const [postComments, setPostComments] = useState<Record<string, Comment[]>>({});
-  const [newComment, setNewComment] = useState('');
-
-  const level = getCurrentLevel();
-  const beltRank = getBeltRank(level);
-  const displayName = getDisplayName();
-
-  const popularTags = [
-    'budgeting', 'investing', 'saving', 'debt-free', 'financial-freedom',
-    'retirement', 'side-hustle', 'frugal-living', 'wealth-building'
-  ];
-
-  function generateSamplePosts(): Post[] {
-    const samplePosts: Post[] = [
-      {
-        id: '1',
-        author: {
-          name: 'Jessica Chen',
-          avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150',
-          level: 8,
-          belt: 'Yellow Belt'
-        },
-        content: "Just hit my emergency fund goal of $10,000! 🎉 Took me 14 months of consistent saving. For anyone struggling to build their fund, my tip is to start small and automate transfers on payday before you can spend it. What strategies worked for you?",
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-        likes: 42,
-        comments: 7,
-        tags: ['emergency-fund', 'saving', 'goals'],
-        liked: false,
-        bookmarked: false
-      },
-      {
-        id: '2',
-        author: {
-          name: 'Marcus Johnson',
-          avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150',
-          level: 15,
-          belt: 'Blue Belt'
-        },
-        content: "I've been using the 50/30/20 budget rule for 6 months now and it's completely changed my financial life. 50% needs, 30% wants, 20% savings/debt. Simple but effective. What budgeting method works best for you?",
-        timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
-        likes: 38,
-        comments: 12,
-        tags: ['budgeting', '50-30-20-rule', 'money-management'],
-        liked: true,
-        bookmarked: true
-      },
-      {
-        id: '3',
-        author: {
-          name: 'Sophia Rodriguez',
-          avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150',
-          level: 24,
-          belt: 'Brown Belt'
-        },
-        content: "Investment milestone: My portfolio just crossed $100K! Started with just $50/month five years ago, then gradually increased as my income grew. Compound interest is truly magical. Key lesson: time in the market beats timing the market. Stay consistent!",
-        timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-        likes: 87,
-        comments: 23,
-        tags: ['investing', 'milestone', 'compound-interest'],
-        liked: false,
-        bookmarked: false
-      },
-      {
-        id: '4',
-        author: {
-          name: 'David Kim',
-          avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150',
-          level: 12,
-          belt: 'Green Belt'
-        },
-        content: "Finally paid off my $35,000 student loan today! 🎉 Took 3 years of aggressive payments and some serious lifestyle adjustments, but the freedom feels incredible. If you're struggling with debt, remember that every extra dollar toward principal makes a difference!",
-        timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-        likes: 124,
-        comments: 31,
-        tags: ['debt-free', 'student-loans', 'financial-freedom'],
-        liked: false,
-        bookmarked: true
-      },
-      {
-        id: '5',
-        author: {
-          name: 'Aisha Patel',
-          avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150',
-          level: 32,
-          belt: 'Black Belt'
-        },
-        content: "Side hustle update: My Etsy shop just hit $2,000 monthly revenue! 📈 Started as a hobby 18 months ago and now it covers my rent. For those interested in side hustles, find something you enjoy that solves a problem for others. What side hustles have worked for you?",
-        timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-        likes: 76,
-        comments: 19,
-        tags: ['side-hustle', 'passive-income', 'entrepreneurship'],
-        liked: true,
-        bookmarked: false
-      }
-    ];
-
-    return samplePosts;
-  }
-
-  const generateSampleComments = (postId: string): Comment[] => {
-    const sampleComments: Comment[] = [
-      {
-        id: `${postId}-comment-1`,
-        author: {
-          name: 'Taylor Wilson',
-          avatar: 'https://images.pexels.com/photos/1681010/pexels-photo-1681010.jpeg?auto=compress&cs=tinysrgb&w=150',
-        },
-        content: "Congratulations! I'm working on my emergency fund too. Did you keep it in a high-yield savings account?",
-        timestamp: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
-        likes: 3
-      },
-      {
-        id: `${postId}-comment-2`,
-        author: {
-          name: 'Jordan Lee',
-          avatar: 'https://images.pexels.com/photos/1933873/pexels-photo-1933873.jpeg?auto=compress&cs=tinysrgb&w=150',
-        },
-        content: "This is so inspiring! I'm about halfway to my goal. The automation tip is key - I don't even see the money before it goes to savings.",
-        timestamp: new Date(Date.now() - 45 * 60 * 1000), // 45 minutes ago
-        likes: 5
-      },
-      {
-        id: `${postId}-comment-3`,
-        author: {
-          name: 'Alex Morgan',
-          avatar: 'https://images.pexels.com/photos/1858175/pexels-photo-1858175.jpeg?auto=compress&cs=tinysrgb&w=150',
-        },
-        content: "Great job! I found that having a separate account specifically for emergencies helped me avoid dipping into it for non-emergencies.",
-        timestamp: new Date(Date.now() - 90 * 60 * 1000), // 90 minutes ago
-        likes: 2
-      }
-    ];
-
-    return sampleComments;
-  };
-
-  const handlePostSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newPostContent.trim()) return;
-    
-    // Create new post
-    const newPost: Post = {
-      id: `user-post-${Date.now()}`,
-      author: {
-        name: displayName,
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2A6F68&color=fff`,
-        level,
-        belt: beltRank.name
-      },
-      content: newPostContent,
-      timestamp: new Date(),
-      likes: 0,
-      comments: 0,
-      tags: extractTags(newPostContent),
-      liked: false,
-      bookmarked: false
-    };
-    
-    // Add to posts
-    setPosts([newPost, ...posts]);
-    setNewPostContent('');
-    
-    // Award XP for community contribution
-    if (onXPUpdate) {
-      onXPUpdate(10);
-    }
-  };
-
-  const extractTags = (content: string): string[] => {
-    const hashtagRegex = /#(\w+)/g;
-    const matches = content.match(hashtagRegex);
-    
-    if (!matches) return [];
-    
-    return matches.map(tag => tag.substring(1).toLowerCase());
-  };
-
-  const handleLikePost = (postId: string) => {
-    setPosts(posts.map(post => {
-      if (post.id === postId) {
-        const newLiked = !post.liked;
-        return {
-          ...post,
-          liked: newLiked,
-          likes: newLiked ? post.likes + 1 : post.likes - 1
-        };
-      }
-      return post;
-    }));
-  };
-
-  const handleBookmarkPost = (postId: string) => {
-    setPosts(posts.map(post => {
-      if (post.id === postId) {
-        return {
-          ...post,
-          bookmarked: !post.bookmarked
-        };
-      }
-      return post;
-    }));
-  };
-
-  const handleExpandPost = (postId: string) => {
-    if (expandedPost === postId) {
-      setExpandedPost(null);
-      return;
-    }
-    
-    setExpandedPost(postId);
-    
-    // Generate comments if they don't exist
-    if (!postComments[postId]) {
-      setPostComments({
-        ...postComments,
-        [postId]: generateSampleComments(postId)
-      });
-    }
-  };
-
-  const handleAddComment = (postId: string) => {
-    if (!newComment.trim()) return;
-    
-    const comment: Comment = {
-      id: `${postId}-comment-${Date.now()}`,
-      author: {
-        name: displayName,
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2A6F68&color=fff`,
-      },
-      content: newComment,
-      timestamp: new Date(),
-      likes: 0
-    };
-    
-    // Add comment to post
-    setPostComments({
-      ...postComments,
-      [postId]: [...(postComments[postId] || []), comment]
-    });
-    
-    // Update comment count
-    setPosts(posts.map(post => {
-      if (post.id === postId) {
-        return {
-          ...post,
-          comments: post.comments + 1
-        };
-      }
-      return post;
-    }));
-    
-    setNewComment('');
-    
-    // Award XP for community engagement
-    if (onXPUpdate) {
-      onXPUpdate(5);
-    }
-  };
-
-  const formatTimestamp = (timestamp: Date): string => {
-    const now = new Date();
-    const diffMs = now.getTime() - timestamp.getTime();
-    const diffSecs = Math.floor(diffMs / 1000);
-    const diffMins = Math.floor(diffSecs / 60);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-    
-    if (diffDays > 0) {
-      return `${diffDays}d ago`;
-    } else if (diffHours > 0) {
-      return `${diffHours}h ago`;
-    } else if (diffMins > 0) {
-      return `${diffMins}m ago`;
-    } else {
-      return 'Just now';
-    }
-  };
-
-  const filteredPosts = posts.filter(post => {
-    // Filter by search term
-    if (searchTerm && !post.content.toLowerCase().includes(searchTerm.toLowerCase()) && 
-        !post.author.name.toLowerCase().includes(searchTerm.toLowerCase())) {
-      return false;
-    }
-    
-    // Filter by tag
-    if (selectedTag && !post.tags.includes(selectedTag)) {
-      return false;
-    }
-    
-    return true;
-  });
-
-  const leaderboardUsers = [
-    { 
-      name: 'Aisha Patel', 
-      avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150',
-      level: 32,
-      belt: 'Black Belt',
-      xp: 3245,
-      achievements: ['Investment Master', 'Community Leader', 'Knowledge Sharer']
-    },
-    { 
-      name: 'Marcus Johnson', 
-      avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150',
-      level: 28,
-      belt: 'Black Belt',
-      xp: 2876,
-      achievements: ['Debt Destroyer', 'Savings Champion', 'Budget Master']
-    },
-    { 
-      name: 'Sophia Rodriguez', 
-      avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150',
-      level: 24,
-      belt: 'Brown Belt',
-      xp: 2412,
-      achievements: ['Investment Guru', 'Goal Crusher', 'Quiz Ace']
-    },
-    { 
-      name: displayName, 
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2A6F68&color=fff`,
-      level,
-      belt: beltRank.name,
-      xp: level * 100,
-      achievements: ['Welcome', 'First Steps', 'Learning Starter']
-    },
-    { 
-      name: 'David Kim', 
-      avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150',
-      level: 12,
-      belt: 'Green Belt',
-      xp: 1245,
-      achievements: ['Debt Slayer', 'Budget Novice']
-    }
-  ].sort((a, b) => b.xp - a.xp);
-
-  const activeChallenges = [
+  const [filterType, setFilterType] = useState('all');
+  const { getDisplayName } = useUserProfile(user);
+  
+  // Sample data for Money Circles
+  const [moneyCircles, setMoneyCircles] = useState([
     {
       id: '1',
-      title: 'No-Spend Weekend Challenge',
-      description: 'Go an entire weekend without spending any money on non-essentials',
-      participants: 342,
-      daysLeft: 3,
-      xpReward: 50,
-      difficulty: 'Medium',
-      category: 'Saving'
+      name: 'Family Budget Group',
+      members: ['Sarah J.', 'Michael T.', 'Jessica R.'],
+      memberCount: 3,
+      type: 'family',
+      lastActive: '2 hours ago',
+      goalProgress: 75,
+      unreadMessages: 2,
+      isAdmin: true
     },
     {
       id: '2',
-      title: '30-Day Meal Prep Challenge',
-      description: 'Prepare all your meals at home for 30 days to reduce food expenses',
-      participants: 156,
-      daysLeft: 12,
-      xpReward: 100,
-      difficulty: 'Hard',
-      category: 'Budgeting'
+      name: 'Investment Club',
+      members: ['David K.', 'Lisa M.', 'Robert P.', 'Emma S.', 'John D.'],
+      memberCount: 5,
+      type: 'investment',
+      lastActive: '1 day ago',
+      goalProgress: 60,
+      unreadMessages: 0,
+      isAdmin: false
     },
     {
       id: '3',
-      title: 'Investment Learning Sprint',
-      description: 'Complete 5 investment modules in 7 days',
-      participants: 278,
-      daysLeft: 5,
+      name: 'Homebuyers Support',
+      members: ['Alex B.', 'Taylor W.'],
+      memberCount: 2,
+      type: 'savings',
+      lastActive: '3 days ago',
+      goalProgress: 45,
+      unreadMessages: 5,
+      isAdmin: true
+    }
+  ]);
+
+  // Sample data for Weekly Quests
+  const [weeklyQuests, setWeeklyQuests] = useState([
+    {
+      id: '1',
+      title: 'Transaction Tracker',
+      description: 'Log every transaction for 5 consecutive days',
+      progress: 3,
+      total: 5,
+      xpReward: 50,
+      daysLeft: 4,
+      completed: false
+    },
+    {
+      id: '2',
+      title: 'Budget Master',
+      description: 'Stay under budget in 3 spending categories',
+      progress: 2,
+      total: 3,
       xpReward: 75,
-      difficulty: 'Medium',
-      category: 'Learning'
+      daysLeft: 2,
+      completed: false
+    },
+    {
+      id: '3',
+      title: 'Savings Streak',
+      description: 'Add to your savings goal 3 times this week',
+      progress: 3,
+      total: 3,
+      xpReward: 100,
+      daysLeft: 1,
+      completed: true
     },
     {
       id: '4',
-      title: 'Subscription Audit',
-      description: 'Review and cancel at least 2 unused subscriptions',
-      participants: 421,
-      daysLeft: 7,
-      xpReward: 30,
-      difficulty: 'Easy',
-      category: 'Saving'
+      title: 'Financial Learner',
+      description: 'Complete 2 learning modules this week',
+      progress: 1,
+      total: 2,
+      xpReward: 60,
+      daysLeft: 3,
+      completed: false
     }
-  ];
+  ]);
+
+  // Sample data for Leaderboard
+  const [leaderboardUsers, setLeaderboardUsers] = useState([
+    {
+      id: '1',
+      name: 'Jessica R.',
+      avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150',
+      xp: 1250,
+      rank: 1,
+      badges: 8,
+      savingsRate: 32,
+      streak: 45
+    },
+    {
+      id: '2',
+      name: 'Michael T.',
+      avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150',
+      xp: 1120,
+      rank: 2,
+      badges: 7,
+      savingsRate: 28,
+      streak: 30
+    },
+    {
+      id: '3',
+      name: 'Emma S.',
+      avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150',
+      xp: 980,
+      rank: 3,
+      badges: 6,
+      savingsRate: 25,
+      streak: 21
+    },
+    {
+      id: '4',
+      name: 'David K.',
+      avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150',
+      xp: 875,
+      rank: 4,
+      badges: 5,
+      savingsRate: 22,
+      streak: 14
+    },
+    {
+      id: '5',
+      name: getDisplayName(),
+      avatar: 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=150',
+      xp: 820,
+      rank: 5,
+      badges: 4,
+      savingsRate: 20,
+      streak: 10
+    }
+  ]);
+
+  // Sample data for Badges
+  const [badges, setBadges] = useState([
+    {
+      id: '1',
+      name: 'Savings Champion',
+      description: 'Reached 20% savings rate for 3 consecutive months',
+      icon: <PiggyBankIcon />,
+      earned: true,
+      date: '2025-05-15',
+      rarity: 'rare',
+      xpAwarded: 200
+    },
+    {
+      id: '2',
+      name: 'Budget Master',
+      description: 'Stayed under budget in all categories for a full month',
+      icon: <CalculatorIcon />,
+      earned: true,
+      date: '2025-04-30',
+      rarity: 'uncommon',
+      xpAwarded: 150
+    },
+    {
+      id: '3',
+      name: 'Debt Destroyer',
+      description: 'Paid off a debt account completely',
+      icon: <TrophyIcon />,
+      earned: true,
+      date: '2025-03-22',
+      rarity: 'rare',
+      xpAwarded: 250
+    },
+    {
+      id: '4',
+      name: 'Investment Guru',
+      description: 'Started your first investment account',
+      icon: <ChartIcon />,
+      earned: true,
+      date: '2025-02-10',
+      rarity: 'common',
+      xpAwarded: 100
+    },
+    {
+      id: '5',
+      name: 'Goal Crusher',
+      description: 'Achieved a financial goal ahead of schedule',
+      icon: <TargetIcon />,
+      earned: false,
+      rarity: 'epic',
+      xpAwarded: 300
+    },
+    {
+      id: '6',
+      name: 'Knowledge Seeker',
+      description: 'Completed 10 learning modules',
+      icon: <BookIcon />,
+      earned: false,
+      rarity: 'uncommon',
+      xpAwarded: 150
+    },
+    {
+      id: '7',
+      name: 'Community Leader',
+      description: 'Created a Money Circle with 5+ active members',
+      icon: <UsersIcon />,
+      earned: false,
+      rarity: 'legendary',
+      xpAwarded: 500
+    },
+    {
+      id: '8',
+      name: 'Streak Master',
+      description: 'Logged in for 30 consecutive days',
+      icon: <FlameIcon />,
+      earned: false,
+      rarity: 'rare',
+      xpAwarded: 200
+    }
+  ]);
+
+  // Sample data for Collaboration
+  const [collaborators, setCollaborators] = useState([
+    {
+      id: '1',
+      name: 'Sarah Johnson',
+      email: 'sarah.j@example.com',
+      avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150',
+      accessLevel: 'full',
+      dateAdded: '2025-05-01',
+      lastActive: '2 hours ago'
+    },
+    {
+      id: '2',
+      name: 'Michael Thompson',
+      email: 'michael.t@example.com',
+      avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150',
+      accessLevel: 'limited',
+      dateAdded: '2025-04-15',
+      lastActive: '1 day ago'
+    }
+  ]);
+
+  const [newCircleData, setNewCircleData] = useState({
+    name: '',
+    type: 'savings',
+    description: '',
+    isPrivate: false
+  });
+
+  const handleCreateCircle = () => {
+    if (!newCircleData.name) return;
+    
+    const newCircle = {
+      id: (moneyCircles.length + 1).toString(),
+      name: newCircleData.name,
+      members: [getDisplayName()],
+      memberCount: 1,
+      type: newCircleData.type,
+      lastActive: 'Just now',
+      goalProgress: 0,
+      unreadMessages: 0,
+      isAdmin: true
+    };
+    
+    setMoneyCircles([newCircle, ...moneyCircles]);
+    setNewCircleData({
+      name: '',
+      type: 'savings',
+      description: '',
+      isPrivate: false
+    });
+    setShowCreateCircleModal(false);
+    
+    // Award XP for creating a circle
+    onXPUpdate(25);
+  };
+
+  const handleInviteSubmit = () => {
+    if (!inviteEmail) return;
+    
+    // In a real app, this would send an invitation
+    console.log(`Invitation sent to: ${inviteEmail}`);
+    setInviteEmail('');
+    setShowInviteModal(false);
+    
+    // Award XP for inviting someone
+    onXPUpdate(10);
+  };
+
+  const handleQuestProgress = (questId: string) => {
+    setWeeklyQuests(quests => 
+      quests.map(quest => {
+        if (quest.id === questId && !quest.completed) {
+          const newProgress = quest.progress + 1;
+          const completed = newProgress >= quest.total;
+          
+          // Award XP if quest is completed
+          if (completed && !quest.completed) {
+            onXPUpdate(quest.xpReward);
+          }
+          
+          return {
+            ...quest,
+            progress: newProgress,
+            completed: completed
+          };
+        }
+        return quest;
+      })
+    );
+  };
+
+  const filteredBadges = badges.filter(badge => {
+    if (filterType === 'earned') return badge.earned;
+    if (filterType === 'unearned') return !badge.earned;
+    return true;
+  }).filter(badge => 
+    badge.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    badge.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredCircles = moneyCircles.filter(circle => 
+    circle.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    circle.type.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
@@ -458,808 +374,1238 @@ const CommunityPage: React.FC<CommunityPageProps> = ({ user, onXPUpdate }) => {
           </div>
           <div>
             <h1 className="text-xl font-bold">Community Dojo</h1>
-            <p className="text-white/90 text-sm">Connect, share, and grow with fellow financial warriors</p>
+            <p className="text-white/90 text-sm">Connect, compete, and collaborate with fellow financial warriors</p>
           </div>
         </div>
         
         <div className="bg-white/20 rounded-lg px-3 py-1 text-sm">
-          <span className="text-white font-medium">{beltRank.name}</span>
+          <span className="text-white font-medium">{moneyCircles.length} Circles</span>
           <span className="mx-2 text-white/60">•</span>
-          <span className="text-white/90">{level * 100} XP</span>
+          <span className="text-white/90">{weeklyQuests.filter(q => q.completed).length}/{weeklyQuests.length} Quests</span>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Community Feed & Tabs */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Tabs */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-1">
-            <div className="grid grid-cols-3 gap-1">
-              <button
-                onClick={() => setActiveTab('feed')}
-                className={`py-3 px-4 rounded-lg transition-all ${
-                  activeTab === 'feed'
-                    ? 'bg-[#2A6F68] text-white'
-                    : 'hover:bg-gray-100 text-gray-700'
-                }`}
-              >
-                <div className="flex items-center justify-center space-x-2">
-                  <MessageSquare className="h-4 w-4" />
-                  <span className="font-medium">Community Feed</span>
+      {/* Navigation Tabs */}
+      <div className="bg-white rounded-xl p-1 shadow-sm border border-gray-200">
+        <div className="grid grid-cols-5 gap-1">
+          <button
+            onClick={() => setActiveTab('circles')}
+            className={`flex flex-col items-center justify-center py-3 px-4 rounded-lg transition-all ${
+              activeTab === 'circles'
+                ? 'bg-[#2A6F68] text-white'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <Users className="h-5 w-5 mb-1" />
+            <span className="text-xs font-medium">Money Circles</span>
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('quests')}
+            className={`flex flex-col items-center justify-center py-3 px-4 rounded-lg transition-all ${
+              activeTab === 'quests'
+                ? 'bg-[#2A6F68] text-white'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <Target className="h-5 w-5 mb-1" />
+            <span className="text-xs font-medium">Weekly Quests</span>
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('leaderboard')}
+            className={`flex flex-col items-center justify-center py-3 px-4 rounded-lg transition-all ${
+              activeTab === 'leaderboard'
+                ? 'bg-[#2A6F68] text-white'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <Trophy className="h-5 w-5 mb-1" />
+            <span className="text-xs font-medium">Leaderboard</span>
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('badges')}
+            className={`flex flex-col items-center justify-center py-3 px-4 rounded-lg transition-all ${
+              activeTab === 'badges'
+                ? 'bg-[#2A6F68] text-white'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <Award className="h-5 w-5 mb-1" />
+            <span className="text-xs font-medium">Badges</span>
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('collaboration')}
+            className={`flex flex-col items-center justify-center py-3 px-4 rounded-lg transition-all ${
+              activeTab === 'collaboration'
+                ? 'bg-[#2A6F68] text-white'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <Share2 className="h-5 w-5 mb-1" />
+            <span className="text-xs font-medium">Collaboration</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Content Area */}
+      <AnimatePresence mode="wait">
+        {/* Money Circles */}
+        {activeTab === 'circles' && (
+          <motion.div
+            key="circles"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-[#333333]">Your Money Circles</h2>
+              <div className="flex space-x-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search circles..."
+                    className="pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all w-48 md:w-64"
+                  />
                 </div>
-              </button>
-              
-              <button
-                onClick={() => setActiveTab('challenges')}
-                className={`py-3 px-4 rounded-lg transition-all ${
-                  activeTab === 'challenges'
-                    ? 'bg-[#2A6F68] text-white'
-                    : 'hover:bg-gray-100 text-gray-700'
-                }`}
-              >
-                <div className="flex items-center justify-center space-x-2">
-                  <Award className="h-4 w-4" />
-                  <span className="font-medium">Challenges</span>
-                </div>
-              </button>
-              
-              <button
-                onClick={() => setActiveTab('leaderboard')}
-                className={`py-3 px-4 rounded-lg transition-all ${
-                  activeTab === 'leaderboard'
-                    ? 'bg-[#2A6F68] text-white'
-                    : 'hover:bg-gray-100 text-gray-700'
-                }`}
-              >
-                <div className="flex items-center justify-center space-x-2">
-                  <TrendingUp className="h-4 w-4" />
-                  <span className="font-medium">Leaderboard</span>
-                </div>
-              </button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowCreateCircleModal(true)}
+                  className="flex items-center space-x-2 bg-[#2A6F68] text-white px-3 py-2 rounded-lg hover:bg-[#235A54] transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Create Circle</span>
+                </motion.button>
+              </div>
             </div>
-          </div>
 
-          {/* Content based on active tab */}
-          <AnimatePresence mode="wait">
-            {activeTab === 'feed' && (
-              <motion.div
-                key="feed"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-6"
-              >
-                {/* Create Post */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                  <form onSubmit={handlePostSubmit}>
-                    <div className="flex items-start space-x-3">
-                      <div className="w-10 h-10 rounded-full bg-[#2A6F68] flex items-center justify-center text-white">
-                        {displayName.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="flex-1">
-                        <textarea
-                          value={newPostContent}
-                          onChange={(e) => setNewPostContent(e.target.value)}
-                          placeholder="Share your financial wins, tips, or questions with the community..."
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all min-h-[100px] text-sm"
-                        />
-                        <div className="mt-3 flex items-center justify-between">
-                          <div className="text-xs text-gray-500">
-                            Use #hashtags to categorize your post
-                          </div>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            type="submit"
-                            disabled={!newPostContent.trim()}
-                            className="bg-[#2A6F68] text-white px-4 py-2 rounded-lg hover:bg-[#235A54] disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
-                          >
-                            Post to Community
-                          </motion.button>
-                        </div>
-                      </div>
-                    </div>
-                  </form>
+            {filteredCircles.length === 0 ? (
+              <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-200 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="h-8 w-8 text-gray-400" />
                 </div>
-
-                {/* Search and Filter */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                  <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Search posts..."
-                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all text-sm"
-                      />
-                    </div>
-                    <div className="relative">
-                      <button
-                        onClick={() => setShowTagFilter(!showTagFilter)}
-                        className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
-                      >
-                        <Filter className="h-4 w-4 text-gray-500" />
-                        <span>{selectedTag ? `#${selectedTag}` : 'Filter by tag'}</span>
-                        <ChevronDown className="h-4 w-4 text-gray-500" />
-                      </button>
-                      
-                      <AnimatePresence>
-                        {showTagFilter && (
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 10 }}
-                            className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 p-3 z-10"
-                          >
-                            <div className="flex justify-between items-center mb-2">
-                              <h4 className="font-medium text-sm text-gray-700">Popular Tags</h4>
-                              {selectedTag && (
-                                <button
-                                  onClick={() => {
-                                    setSelectedTag(null);
-                                    setShowTagFilter(false);
-                                  }}
-                                  className="text-xs text-[#2A6F68] hover:underline"
-                                >
-                                  Clear filter
-                                </button>
-                              )}
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {popularTags.map(tag => (
-                                <button
-                                  key={tag}
-                                  onClick={() => {
-                                    setSelectedTag(tag);
-                                    setShowTagFilter(false);
-                                  }}
-                                  className={`px-2 py-1 rounded-full text-xs ${
-                                    selectedTag === tag
-                                      ? 'bg-[#2A6F68] text-white'
-                                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                  }`}
-                                >
-                                  #{tag}
-                                </button>
-                              ))}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Posts */}
-                {filteredPosts.length === 0 ? (
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <MessageSquare className="h-8 w-8 text-gray-400" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No posts found</h3>
-                    <p className="text-gray-600 mb-4">
-                      {searchTerm || selectedTag
-                        ? 'Try adjusting your search or filters'
-                        : 'Be the first to share with the community!'}
-                    </p>
-                    {(searchTerm || selectedTag) && (
-                      <button
-                        onClick={() => {
-                          setSearchTerm('');
-                          setSelectedTag(null);
-                        }}
-                        className="inline-flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                      >
-                        <X className="h-4 w-4" />
-                        <span>Clear filters</span>
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {filteredPosts.map(post => (
-                      <div key={post.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                        {/* Post Header */}
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center space-x-3">
-                            <img
-                              src={post.author.avatar}
-                              alt={post.author.name}
-                              className="w-10 h-10 rounded-full object-cover"
-                            />
-                            <div>
-                              <div className="flex items-center space-x-2">
-                                <h3 className="font-semibold text-gray-900">{post.author.name}</h3>
-                                <span className="text-xs bg-[#2A6F68]/10 text-[#2A6F68] px-2 py-0.5 rounded-full">
-                                  Level {post.author.level}
-                                </span>
-                                <span className="text-xs text-gray-500">{post.author.belt}</span>
-                              </div>
-                              <div className="flex items-center space-x-1 text-xs text-gray-500">
-                                <Clock className="h-3 w-3" />
-                                <span>{formatTimestamp(post.timestamp)}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <button className="text-gray-400 hover:text-gray-600">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </button>
+                <h3 className="text-lg font-semibold text-[#333333] mb-2">No Money Circles Found</h3>
+                <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                  {searchTerm ? 'No circles match your search. Try different keywords.' : 'Create your first Money Circle to start collaborating with friends and family on financial goals.'}
+                </p>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowCreateCircleModal(true)}
+                  className="inline-flex items-center space-x-2 bg-[#2A6F68] text-white px-4 py-2 rounded-lg hover:bg-[#235A54] transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Create Your First Circle</span>
+                </motion.button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredCircles.map((circle) => (
+                  <motion.div
+                    key={circle.id}
+                    whileHover={{ y: -5 }}
+                    className="bg-white rounded-xl p-5 shadow-sm border border-gray-200 hover:shadow-md transition-all"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-[#2A6F68]/10 rounded-lg flex items-center justify-center">
+                          <Users className="h-5 w-5 text-[#2A6F68]" />
                         </div>
-                        
-                        {/* Post Content */}
-                        <div className="mb-3">
-                          <p className="text-gray-800 whitespace-pre-line">{post.content}</p>
-                        </div>
-                        
-                        {/* Post Tags */}
-                        {post.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mb-3">
-                            {post.tags.map(tag => (
-                              <button
-                                key={tag}
-                                onClick={() => setSelectedTag(tag)}
-                                className="flex items-center space-x-1 px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs hover:bg-gray-200 transition-colors"
-                              >
-                                <Tag className="h-3 w-3" />
-                                <span>#{tag}</span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                        
-                        {/* Post Actions */}
-                        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                          <div className="flex items-center space-x-4">
-                            <button
-                              onClick={() => handleLikePost(post.id)}
-                              className={`flex items-center space-x-1 text-sm ${
-                                post.liked ? 'text-[#B76E79]' : 'text-gray-500 hover:text-[#B76E79]'
-                              }`}
-                            >
-                              <ThumbsUp className="h-4 w-4" />
-                              <span>{post.likes}</span>
-                            </button>
-                            <button
-                              onClick={() => handleExpandPost(post.id)}
-                              className="flex items-center space-x-1 text-sm text-gray-500 hover:text-[#2A6F68]"
-                            >
-                              <MessageSquare className="h-4 w-4" />
-                              <span>{post.comments}</span>
-                            </button>
-                          </div>
-                          <div className="flex items-center space-x-3">
-                            <button
-                              onClick={() => handleBookmarkPost(post.id)}
-                              className={`text-sm ${
-                                post.bookmarked ? 'text-[#2A6F68]' : 'text-gray-500 hover:text-[#2A6F68]'
-                              }`}
-                            >
-                              <Bookmark className="h-4 w-4" />
-                            </button>
-                            <button className="text-sm text-gray-500 hover:text-[#2A6F68]">
-                              <Share2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                        
-                        {/* Comments Section */}
-                        <AnimatePresence>
-                          {expandedPost === post.id && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: 'auto' }}
-                              exit={{ opacity: 0, height: 0 }}
-                              className="mt-4 pt-4 border-t border-gray-100"
-                            >
-                              <h4 className="font-medium text-gray-900 mb-3">Comments</h4>
-                              
-                              {/* Comment List */}
-                              <div className="space-y-3 mb-4">
-                                {postComments[post.id]?.map(comment => (
-                                  <div key={comment.id} className="flex space-x-3">
-                                    <img
-                                      src={comment.author.avatar}
-                                      alt={comment.author.name}
-                                      className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                                    />
-                                    <div className="flex-1 bg-gray-50 rounded-lg p-3">
-                                      <div className="flex items-center justify-between mb-1">
-                                        <span className="font-medium text-gray-900 text-sm">{comment.author.name}</span>
-                                        <span className="text-xs text-gray-500">{formatTimestamp(comment.timestamp)}</span>
-                                      </div>
-                                      <p className="text-gray-800 text-sm">{comment.content}</p>
-                                      <div className="flex items-center space-x-2 mt-2">
-                                        <button className="text-xs text-gray-500 hover:text-[#B76E79] flex items-center space-x-1">
-                                          <ThumbsUp className="h-3 w-3" />
-                                          <span>{comment.likes}</span>
-                                        </button>
-                                        <button className="text-xs text-gray-500 hover:text-[#2A6F68]">
-                                          Reply
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                              
-                              {/* Add Comment */}
-                              <div className="flex space-x-3">
-                                <div className="w-8 h-8 rounded-full bg-[#2A6F68] flex items-center justify-center text-white flex-shrink-0">
-                                  {displayName.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="flex-1 relative">
-                                  <input
-                                    type="text"
-                                    value={newComment}
-                                    onChange={(e) => setNewComment(e.target.value)}
-                                    placeholder="Add a comment..."
-                                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all text-sm"
-                                  />
-                                  <button
-                                    onClick={() => handleAddComment(post.id)}
-                                    disabled={!newComment.trim()}
-                                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[#2A6F68] disabled:text-gray-300"
-                                  >
-                                    <Send className="h-4 w-4" />
-                                  </button>
-                                </div>
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </motion.div>
-            )}
-
-            {activeTab === 'challenges' && (
-              <motion.div
-                key="challenges"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-6"
-              >
-                {/* Active Challenges */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">Active Community Challenges</h3>
-                  <div className="space-y-4">
-                    {activeChallenges.map(challenge => (
-                      <div key={challenge.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <div className="flex items-center space-x-2 mb-1">
-                              <h4 className="font-semibold text-gray-900">{challenge.title}</h4>
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                challenge.difficulty === 'Easy' ? 'bg-green-100 text-green-800' :
-                                challenge.difficulty === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-red-100 text-red-800'
-                              }`}>
-                                {challenge.difficulty}
-                              </span>
-                            </div>
-                            <p className="text-gray-600 text-sm mb-3">{challenge.description}</p>
-                            <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
-                              <div className="flex items-center space-x-1">
-                                <Users className="h-3 w-3" />
-                                <span>{challenge.participants} participants</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Calendar className="h-3 w-3" />
-                                <span>{challenge.daysLeft} days left</span>
-                              </div>
-                              <div className="flex items-center space-x-1 text-yellow-600">
-                                <Zap className="h-3 w-3" />
-                                <span>+{challenge.xpReward} XP reward</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Tag className="h-3 w-3" />
-                                <span>{challenge.category}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="bg-[#2A6F68] text-white px-3 py-1 rounded-lg text-sm hover:bg-[#235A54] transition-colors"
-                          >
-                            Join Challenge
-                          </motion.button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Past Challenges */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">Past Challenges</h3>
-                  <div className="space-y-4">
-                    <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                      <div className="flex items-start justify-between">
                         <div>
-                          <div className="flex items-center space-x-2 mb-1">
-                            <h4 className="font-semibold text-gray-900">52-Week Savings Challenge</h4>
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">Completed</span>
-                          </div>
-                          <p className="text-gray-600 text-sm mb-3">Save an increasing amount each week for a year, starting with $1 and ending with $52</p>
-                          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
-                            <div className="flex items-center space-x-1">
-                              <Users className="h-3 w-3" />
-                              <span>1,245 participants</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Calendar className="h-3 w-3" />
-                              <span>Ended 2 months ago</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Tag className="h-3 w-3" />
-                              <span>Saving</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-1 bg-green-100 text-green-800 px-2 py-1 rounded-lg text-xs">
-                          <CheckCircle className="h-3 w-3" />
-                          <span>+150 XP earned</span>
+                          <h3 className="font-semibold text-[#333333]">{circle.name}</h3>
+                          <p className="text-xs text-gray-500">{circle.memberCount} members • {circle.type}</p>
                         </div>
                       </div>
+                      {circle.unreadMessages > 0 && (
+                        <div className="bg-[#B76E79] text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                          {circle.unreadMessages}
+                        </div>
+                      )}
                     </div>
-
-                    <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="flex items-center space-x-2 mb-1">
-                            <h4 className="font-semibold text-gray-900">Financial Book Club</h4>
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">Completed</span>
-                          </div>
-                          <p className="text-gray-600 text-sm mb-3">Read "The Psychology of Money" and participate in weekly discussions</p>
-                          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
-                            <div className="flex items-center space-x-1">
-                              <Users className="h-3 w-3" />
-                              <span>876 participants</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Calendar className="h-3 w-3" />
-                              <span>Ended 3 weeks ago</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Tag className="h-3 w-3" />
-                              <span>Learning</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-1 bg-green-100 text-green-800 px-2 py-1 rounded-lg text-xs">
-                          <CheckCircle className="h-3 w-3" />
-                          <span>+100 XP earned</span>
-                        </div>
+                    
+                    <div className="mb-3">
+                      <div className="flex justify-between text-xs text-gray-500 mb-1">
+                        <span>Goal Progress</span>
+                        <span>{circle.goalProgress}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-[#2A6F68] h-2 rounded-full" 
+                          style={{ width: `${circle.goalProgress}%` }}
+                        ></div>
                       </div>
                     </div>
-                  </div>
-                </div>
-
-                {/* Upcoming Challenges */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-gray-900">Upcoming Challenges</h3>
-                    <button className="text-sm text-[#2A6F68] hover:underline">View all</button>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="flex items-center space-x-2 mb-1">
-                            <h4 className="font-semibold text-gray-900">Debt Payoff Sprint</h4>
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">Coming Soon</span>
-                          </div>
-                          <p className="text-gray-600 text-sm mb-3">Accelerate your debt payoff by making extra payments for 30 days</p>
-                          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
-                            <div className="flex items-center space-x-1">
-                              <Calendar className="h-3 w-3" />
-                              <span>Starts in 2 weeks</span>
-                            </div>
-                            <div className="flex items-center space-x-1 text-yellow-600">
-                              <Zap className="h-3 w-3" />
-                              <span>+125 XP reward</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Tag className="h-3 w-3" />
-                              <span>Debt Management</span>
-                            </div>
-                          </div>
+                    
+                    <div className="flex -space-x-2 mb-3">
+                      {circle.members.slice(0, 3).map((member, index) => (
+                        <div 
+                          key={index} 
+                          className="w-8 h-8 rounded-full bg-gray-300 border-2 border-white flex items-center justify-center text-xs font-medium text-gray-800"
+                        >
+                          {member.charAt(0)}
                         </div>
+                      ))}
+                      {circle.members.length > 3 && (
+                        <div className="w-8 h-8 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-xs font-medium text-gray-800">
+                          +{circle.members.length - 3}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-500">Active {circle.lastActive}</span>
+                      <div className="flex space-x-2">
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          className="bg-gray-100 text-gray-700 px-3 py-1 rounded-lg text-sm hover:bg-gray-200 transition-colors"
+                          onClick={() => setShowInviteModal(true)}
+                          className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                         >
-                          Get Notified
+                          <UserPlus className="h-4 w-4 text-gray-600" />
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="p-2 bg-[#2A6F68] rounded-lg hover:bg-[#235A54] transition-colors"
+                        >
+                          <MessageCircle className="h-4 w-4 text-white" />
                         </motion.button>
                       </div>
                     </div>
-                  </div>
-                </div>
-              </motion.div>
+                  </motion.div>
+                ))}
+              </div>
             )}
 
-            {activeTab === 'leaderboard' && (
-              <motion.div
-                key="leaderboard"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-6"
-              >
-                {/* Leaderboard */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">Community Leaderboard</h3>
-                  <div className="space-y-4">
-                    {leaderboardUsers.map((user, index) => (
+            <div className="bg-[#2A6F68]/5 rounded-xl p-5 border border-[#2A6F68]/20">
+              <div className="flex items-start space-x-3">
+                <div className="w-10 h-10 bg-[#2A6F68]/20 rounded-lg flex items-center justify-center mt-1">
+                  <Users className="h-5 w-5 text-[#2A6F68]" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-[#2A6F68] mb-2">Why Join Money Circles?</h3>
+                  <ul className="space-y-2 text-sm text-gray-700">
+                    <li className="flex items-start space-x-2">
+                      <CheckCircle className="h-4 w-4 text-[#2A6F68] mt-0.5 flex-shrink-0" />
+                      <span>Stay accountable with friends and family</span>
+                    </li>
+                    <li className="flex items-start space-x-2">
+                      <CheckCircle className="h-4 w-4 text-[#2A6F68] mt-0.5 flex-shrink-0" />
+                      <span>Share progress on common financial goals</span>
+                    </li>
+                    <li className="flex items-start space-x-2">
+                      <CheckCircle className="h-4 w-4 text-[#2A6F68] mt-0.5 flex-shrink-0" />
+                      <span>Celebrate wins together and stay motivated</span>
+                    </li>
+                    <li className="flex items-start space-x-2">
+                      <CheckCircle className="h-4 w-4 text-[#2A6F68] mt-0.5 flex-shrink-0" />
+                      <span>Learn from others' financial strategies</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Weekly Quests */}
+        {activeTab === 'quests' && (
+          <motion.div
+            key="quests"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-[#333333]">Weekly Quests</h2>
+              <div className="bg-[#2A6F68]/10 text-[#2A6F68] px-3 py-1 rounded-lg text-sm font-medium flex items-center space-x-2">
+                <Calendar className="h-4 w-4" />
+                <span>Resets in 2 days</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {weeklyQuests.map((quest) => (
+                <motion.div
+                  key={quest.id}
+                  whileHover={{ y: -5 }}
+                  className={`bg-white rounded-xl p-5 shadow-sm border transition-all ${
+                    quest.completed 
+                      ? 'border-green-200 bg-green-50' 
+                      : 'border-gray-200 hover:shadow-md'
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        quest.completed 
+                          ? 'bg-green-100' 
+                          : 'bg-[#2A6F68]/10'
+                      }`}>
+                        {quest.completed ? (
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <Target className="h-5 w-5 text-[#2A6F68]" />
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-[#333333]">{quest.title}</h3>
+                        <p className="text-xs text-gray-500">
+                          {quest.completed 
+                            ? 'Completed' 
+                            : `${quest.daysLeft} day${quest.daysLeft !== 1 ? 's' : ''} left`
+                          }
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-1 bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs font-medium">
+                      <Zap className="h-3 w-3" />
+                      <span>+{quest.xpReward} XP</span>
+                    </div>
+                  </div>
+                  
+                  <p className="text-sm text-gray-600 mb-3">{quest.description}</p>
+                  
+                  <div className="mb-3">
+                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <span>Progress</span>
+                      <span>{quest.progress}/{quest.total}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
-                        key={user.name} 
-                        className={`flex items-center justify-between p-4 rounded-lg ${
-                          user.name === displayName 
-                            ? 'bg-[#2A6F68]/10 border border-[#2A6F68]/20' 
-                            : index % 2 === 0 ? 'bg-gray-50' : 'bg-white'
+                        className={`h-2 rounded-full ${
+                          quest.completed 
+                            ? 'bg-green-500' 
+                            : 'bg-[#2A6F68]'
                         }`}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 flex items-center justify-center font-bold text-gray-700 bg-gray-200 rounded-full">
-                            {index + 1}
-                          </div>
-                          <img
-                            src={user.avatar}
-                            alt={user.name}
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
-                          <div>
-                            <div className="flex items-center space-x-2">
-                              <h4 className="font-semibold text-gray-900">{user.name}</h4>
-                              {user.name === displayName && (
-                                <span className="text-xs bg-[#2A6F68]/10 text-[#2A6F68] px-2 py-0.5 rounded-full">
-                                  You
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center space-x-2 text-xs text-gray-500">
-                              <span>Level {user.level}</span>
-                              <span>•</span>
-                              <span>{user.belt}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-bold text-[#2A6F68]">{user.xp} XP</div>
-                          <div className="flex items-center justify-end space-x-1 text-xs text-gray-500">
-                            <Award className="h-3 w-3" />
-                            <span>{user.achievements.length} achievements</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Achievement Showcase */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">Top Achievements</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="border border-gray-200 rounded-lg p-4 bg-gradient-to-br from-amber-50 to-amber-100">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <div className="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center">
-                          <Award className="h-5 w-5 text-white" />
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900">Debt Destroyer</h4>
-                          <p className="text-xs text-gray-600">Completely pay off a major debt</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>124 members earned</span>
-                        <span className="text-amber-600">+200 XP</span>
-                      </div>
-                    </div>
-
-                    <div className="border border-gray-200 rounded-lg p-4 bg-gradient-to-br from-blue-50 to-blue-100">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                          <TrendingUp className="h-5 w-5 text-white" />
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900">Investment Guru</h4>
-                          <p className="text-xs text-gray-600">Complete all investment modules</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>87 members earned</span>
-                        <span className="text-blue-600">+250 XP</span>
-                      </div>
-                    </div>
-
-                    <div className="border border-gray-200 rounded-lg p-4 bg-gradient-to-br from-green-50 to-green-100">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                          <Heart className="h-5 w-5 text-white" />
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900">Community Leader</h4>
-                          <p className="text-xs text-gray-600">Help 50+ members with advice</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>32 members earned</span>
-                        <span className="text-green-600">+300 XP</span>
-                      </div>
-                    </div>
-
-                    <div className="border border-gray-200 rounded-lg p-4 bg-gradient-to-br from-purple-50 to-purple-100">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
-                          <Users className="h-5 w-5 text-white" />
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900">Challenge Champion</h4>
-                          <p className="text-xs text-gray-600">Complete 10 community challenges</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>45 members earned</span>
-                        <span className="text-purple-600">+275 XP</span>
-                      </div>
+                        style={{ width: `${(quest.progress / quest.total) * 100}%` }}
+                      ></div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+                  
+                  {quest.completed ? (
+                    <div className="flex items-center justify-center space-x-2 bg-green-100 text-green-700 p-2 rounded-lg">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="text-sm font-medium">Quest Completed!</span>
+                    </div>
+                  ) : (
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => handleQuestProgress(quest.id)}
+                      className="w-full bg-[#2A6F68] text-white py-2 rounded-lg hover:bg-[#235A54] transition-colors text-sm font-medium"
+                    >
+                      Log Progress
+                    </motion.button>
+                  )}
+                </motion.div>
+              ))}
+            </div>
 
-        {/* Right Column - Community Stats & Trending */}
-        <div className="space-y-6">
-          {/* Your Community Stats */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <h3 className="font-semibold text-gray-900 mb-3">Your Community Stats</h3>
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="bg-[#2A6F68]/10 rounded-lg p-3 text-center">
-                <div className="text-lg font-bold text-[#2A6F68]">Level {level}</div>
-                <div className="text-xs text-gray-600">{beltRank.name}</div>
-              </div>
-              <div className="bg-[#B76E79]/10 rounded-lg p-3 text-center">
-                <div className="text-lg font-bold text-[#B76E79]">3</div>
-                <div className="text-xs text-gray-600">Contributions</div>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Posts</span>
-                <span className="font-medium text-gray-900">2</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Comments</span>
-                <span className="font-medium text-gray-900">5</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Challenges Completed</span>
-                <span className="font-medium text-gray-900">1</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Helpful Votes Received</span>
-                <span className="font-medium text-gray-900">12</span>
+            <div className="bg-[#B76E79]/5 rounded-xl p-5 border border-[#B76E79]/20">
+              <div className="flex items-start space-x-3">
+                <div className="w-10 h-10 bg-[#B76E79]/20 rounded-lg flex items-center justify-center mt-1">
+                  <Target className="h-5 w-5 text-[#B76E79]" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-[#B76E79] mb-2">Quest Benefits</h3>
+                  <ul className="space-y-2 text-sm text-gray-700">
+                    <li className="flex items-start space-x-2">
+                      <CheckCircle className="h-4 w-4 text-[#B76E79] mt-0.5 flex-shrink-0" />
+                      <span>Build consistent financial habits through weekly challenges</span>
+                    </li>
+                    <li className="flex items-start space-x-2">
+                      <CheckCircle className="h-4 w-4 text-[#B76E79] mt-0.5 flex-shrink-0" />
+                      <span>Earn XP and badges to showcase your financial discipline</span>
+                    </li>
+                    <li className="flex items-start space-x-2">
+                      <CheckCircle className="h-4 w-4 text-[#B76E79] mt-0.5 flex-shrink-0" />
+                      <span>Track your progress with visual indicators</span>
+                    </li>
+                    <li className="flex items-start space-x-2">
+                      <CheckCircle className="h-4 w-4 text-[#B76E79] mt-0.5 flex-shrink-0" />
+                      <span>Compete with friends to stay motivated</span>
+                    </li>
+                  </ul>
+                </div>
               </div>
             </div>
-          </div>
+          </motion.div>
+        )}
 
-          {/* Trending Topics */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <h3 className="font-semibold text-gray-900 mb-3">Trending Topics</h3>
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="h-4 w-4 text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-medium text-gray-900 text-sm">I-Bonds vs HYSA</h4>
-                  <p className="text-xs text-gray-500">32 posts this week</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="h-4 w-4 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-medium text-gray-900 text-sm">Recession-Proof Careers</h4>
-                  <p className="text-xs text-gray-500">28 posts this week</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="h-4 w-4 text-purple-600" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-medium text-gray-900 text-sm">House Hacking Strategies</h4>
-                  <p className="text-xs text-gray-500">24 posts this week</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="h-4 w-4 text-amber-600" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-medium text-gray-900 text-sm">Credit Card Churning</h4>
-                  <p className="text-xs text-gray-500">19 posts this week</p>
-                </div>
+        {/* Leaderboard */}
+        {activeTab === 'leaderboard' && (
+          <motion.div
+            key="leaderboard"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-[#333333]">Financial Warriors Leaderboard</h2>
+              <div className="flex items-center space-x-2 bg-[#2A6F68]/10 text-[#2A6F68] px-3 py-1 rounded-lg text-sm">
+                <Trophy className="h-4 w-4" />
+                <span>Weekly Ranking</span>
               </div>
             </div>
-          </div>
 
-          {/* Community Guidelines */}
-          <div className="bg-gradient-to-br from-[#2A6F68]/5 to-[#B76E79]/10 rounded-xl p-4 border border-[#2A6F68]/20">
-            <h3 className="font-semibold text-[#2A6F68] mb-3">Community Guidelines</h3>
-            <div className="space-y-2 text-sm text-gray-700">
-              <p>• Be respectful and supportive of others</p>
-              <p>• Share knowledge, not financial advice</p>
-              <p>• Protect your privacy - don't share account details</p>
-              <p>• Stay on topic with financial discussions</p>
-              <p>• Celebrate wins and learn from setbacks</p>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="grid grid-cols-12 bg-gray-50 p-4 border-b border-gray-200 text-sm font-medium text-gray-500">
+                <div className="col-span-1 text-center">Rank</div>
+                <div className="col-span-5">User</div>
+                <div className="col-span-2 text-center">XP</div>
+                <div className="col-span-2 text-center">Savings Rate</div>
+                <div className="col-span-2 text-center">Streak</div>
+              </div>
+              
+              {leaderboardUsers.map((user, index) => (
+                <div 
+                  key={user.id}
+                  className={`grid grid-cols-12 p-4 ${
+                    index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                  } ${
+                    user.name === getDisplayName() ? 'bg-[#2A6F68]/5 border-l-4 border-[#2A6F68]' : ''
+                  }`}
+                >
+                  <div className="col-span-1 flex justify-center items-center">
+                    {user.rank === 1 ? (
+                      <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                        <Trophy className="h-4 w-4 text-yellow-600" />
+                      </div>
+                    ) : user.rank === 2 ? (
+                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                        <Trophy className="h-4 w-4 text-gray-500" />
+                      </div>
+                    ) : user.rank === 3 ? (
+                      <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+                        <Trophy className="h-4 w-4 text-amber-600" />
+                      </div>
+                    ) : (
+                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-700 font-medium">
+                        {user.rank}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="col-span-5 flex items-center space-x-3">
+                    <img 
+                      src={user.avatar} 
+                      alt={user.name} 
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                    <div>
+                      <div className="font-medium text-gray-900 flex items-center">
+                        {user.name}
+                        {user.name === getDisplayName() && (
+                          <span className="ml-2 text-xs bg-[#2A6F68]/10 text-[#2A6F68] px-2 py-0.5 rounded">
+                            You
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500 flex items-center space-x-1">
+                        <Award className="h-3 w-3" />
+                        <span>{user.badges} badges</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="col-span-2 flex justify-center items-center">
+                    <div className="flex items-center space-x-1 bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-medium">
+                      <Zap className="h-3 w-3" />
+                      <span>{user.xp.toLocaleString()}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="col-span-2 flex justify-center items-center">
+                    <div className="flex items-center space-x-1 bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
+                      <TrendingUp className="h-3 w-3" />
+                      <span>{user.savingsRate}%</span>
+                    </div>
+                  </div>
+                  
+                  <div className="col-span-2 flex justify-center items-center">
+                    <div className="flex items-center space-x-1 bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs font-medium">
+                      <Flame className="h-3 w-3" />
+                      <span>{user.streak} days</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-            <button className="mt-3 text-sm text-[#2A6F68] hover:underline">
-              Read full guidelines
-            </button>
-          </div>
 
-          {/* Active Members */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-gray-900">Active Members</h3>
-              <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
-                24 online now
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <div className="w-8 h-8 rounded-full bg-[#2A6F68] flex items-center justify-center text-white text-xs">
-                {displayName.charAt(0).toUpperCase()}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-[#333333]">Top Savers</h3>
+                  <ArrowRight className="h-4 w-4 text-gray-400" />
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <img 
+                        src="https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150" 
+                        alt="Jessica R." 
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                      <span className="text-sm">Jessica R.</span>
+                    </div>
+                    <div className="text-sm font-medium text-green-600">42%</div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <img 
+                        src="https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150" 
+                        alt="Michael T." 
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                      <span className="text-sm">Michael T.</span>
+                    </div>
+                    <div className="text-sm font-medium text-green-600">38%</div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <img 
+                        src="https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150" 
+                        alt="David K." 
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                      <span className="text-sm">David K.</span>
+                    </div>
+                    <div className="text-sm font-medium text-green-600">35%</div>
+                  </div>
+                </div>
               </div>
-              <img
-                src="https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150"
-                alt="Member"
-                className="w-8 h-8 rounded-full object-cover"
-              />
-              <img
-                src="https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150"
-                alt="Member"
-                className="w-8 h-8 rounded-full object-cover"
-              />
-              <img
-                src="https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150"
-                alt="Member"
-                className="w-8 h-8 rounded-full object-cover"
-              />
-              <img
-                src="https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150"
-                alt="Member"
-                className="w-8 h-8 rounded-full object-cover"
-              />
-              <img
-                src="https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150"
-                alt="Member"
-                className="w-8 h-8 rounded-full object-cover"
-              />
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xs">
-                +18
+              
+              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-[#333333]">Longest Streaks</h3>
+                  <ArrowRight className="h-4 w-4 text-gray-400" />
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <img 
+                        src="https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150" 
+                        alt="Jessica R." 
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                      <span className="text-sm">Jessica R.</span>
+                    </div>
+                    <div className="flex items-center space-x-1 text-sm font-medium text-orange-600">
+                      <Flame className="h-3 w-3" />
+                      <span>45 days</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <img 
+                        src="https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150" 
+                        alt="Michael T." 
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                      <span className="text-sm">Michael T.</span>
+                    </div>
+                    <div className="flex items-center space-x-1 text-sm font-medium text-orange-600">
+                      <Flame className="h-3 w-3" />
+                      <span>30 days</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <img 
+                        src="https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150" 
+                        alt="Emma S." 
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                      <span className="text-sm">Emma S.</span>
+                    </div>
+                    <div className="flex items-center space-x-1 text-sm font-medium text-orange-600">
+                      <Flame className="h-3 w-3" />
+                      <span>21 days</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-[#333333]">Most Badges</h3>
+                  <ArrowRight className="h-4 w-4 text-gray-400" />
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <img 
+                        src="https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150" 
+                        alt="Jessica R." 
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                      <span className="text-sm">Jessica R.</span>
+                    </div>
+                    <div className="flex items-center space-x-1 text-sm font-medium text-purple-600">
+                      <Award className="h-3 w-3" />
+                      <span>8 badges</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <img 
+                        src="https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150" 
+                        alt="Michael T." 
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                      <span className="text-sm">Michael T.</span>
+                    </div>
+                    <div className="flex items-center space-x-1 text-sm font-medium text-purple-600">
+                      <Award className="h-3 w-3" />
+                      <span>7 badges</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <img 
+                        src="https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150" 
+                        alt="Emma S." 
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                      <span className="text-sm">Emma S.</span>
+                    </div>
+                    <div className="flex items-center space-x-1 text-sm font-medium text-purple-600">
+                      <Award className="h-3 w-3" />
+                      <span>6 badges</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
+          </motion.div>
+        )}
+
+        {/* Badges */}
+        {activeTab === 'badges' && (
+          <motion.div
+            key="badges"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-[#333333]">Achievement Badges</h2>
+              <div className="flex items-center space-x-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search badges..."
+                    className="pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all w-48 md:w-64"
+                  />
+                </div>
+                <div className="relative">
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="pl-3 pr-8 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all appearance-none"
+                  >
+                    <option value="all">All Badges</option>
+                    <option value="earned">Earned</option>
+                    <option value="unearned">Unearned</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {filteredBadges.map((badge) => (
+                <motion.div
+                  key={badge.id}
+                  whileHover={{ y: -5 }}
+                  className={`bg-white rounded-xl p-5 shadow-sm border transition-all ${
+                    badge.earned 
+                      ? 'border-[#2A6F68] bg-[#2A6F68]/5' 
+                      : 'border-gray-200 opacity-70'
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                      badge.earned 
+                        ? badge.rarity === 'legendary' ? 'bg-gradient-to-br from-purple-400 to-pink-500' :
+                          badge.rarity === 'epic' ? 'bg-gradient-to-br from-indigo-400 to-purple-500' :
+                          badge.rarity === 'rare' ? 'bg-gradient-to-br from-blue-400 to-indigo-500' :
+                          badge.rarity === 'uncommon' ? 'bg-gradient-to-br from-green-400 to-blue-500' :
+                          'bg-gradient-to-br from-gray-400 to-gray-600'
+                        : 'bg-gray-200'
+                    }`}>
+                      <div className="text-white">
+                        {badge.icon}
+                      </div>
+                    </div>
+                    {badge.earned && (
+                      <div className="flex items-center space-x-1 bg-[#2A6F68] text-white px-2 py-0.5 rounded text-xs">
+                        <CheckCircle className="h-3 w-3" />
+                        <span>Earned</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <h3 className="font-semibold text-[#333333] mb-1">{badge.name}</h3>
+                  <p className="text-xs text-gray-600 mb-3">{badge.description}</p>
+                  
+                  <div className="flex justify-between items-center">
+                    <div className={`text-xs px-2 py-0.5 rounded ${
+                      badge.rarity === 'legendary' ? 'bg-purple-100 text-purple-800' :
+                      badge.rarity === 'epic' ? 'bg-indigo-100 text-indigo-800' :
+                      badge.rarity === 'rare' ? 'bg-blue-100 text-blue-800' :
+                      badge.rarity === 'uncommon' ? 'bg-green-100 text-green-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {badge.rarity.charAt(0).toUpperCase() + badge.rarity.slice(1)}
+                    </div>
+                    <div className="flex items-center space-x-1 text-xs text-yellow-600">
+                      <Zap className="h-3 w-3" />
+                      <span>+{badge.xpAwarded} XP</span>
+                    </div>
+                  </div>
+                  
+                  {badge.earned && badge.date && (
+                    <div className="mt-3 pt-3 border-t border-[#2A6F68]/20 text-xs text-gray-500 flex items-center space-x-1">
+                      <Calendar className="h-3 w-3" />
+                      <span>Earned on {new Date(badge.date).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+
+            <div className="bg-gradient-to-r from-[#2A6F68]/10 to-[#B76E79]/10 rounded-xl p-5 border border-[#2A6F68]/20">
+              <div className="flex items-start space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-[#2A6F68] to-[#B76E79] rounded-lg flex items-center justify-center mt-1">
+                  <Award className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-[#333333] mb-2">Badge Rarity Guide</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-4 h-4 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full"></div>
+                        <span className="text-sm text-gray-700">Legendary: Exceptional achievements</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-4 h-4 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-full"></div>
+                        <span className="text-sm text-gray-700">Epic: Difficult milestones</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-4 h-4 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full"></div>
+                        <span className="text-sm text-gray-700">Rare: Significant accomplishments</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-4 h-4 bg-gradient-to-br from-green-400 to-blue-500 rounded-full"></div>
+                        <span className="text-sm text-gray-700">Uncommon: Notable progress</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-4 h-4 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full"></div>
+                        <span className="text-sm text-gray-700">Common: Everyday achievements</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Collaboration */}
+        {activeTab === 'collaboration' && (
+          <motion.div
+            key="collaboration"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-[#333333]">Multi-User Collaboration</h2>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowInviteModal(true)}
+                className="flex items-center space-x-2 bg-[#2A6F68] text-white px-3 py-2 rounded-lg hover:bg-[#235A54] transition-colors"
+              >
+                <UserPlus className="h-4 w-4" />
+                <span>Invite Collaborator</span>
+              </motion.button>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="grid grid-cols-12 bg-gray-50 p-4 border-b border-gray-200 text-sm font-medium text-gray-500">
+                <div className="col-span-5">Collaborator</div>
+                <div className="col-span-3">Access Level</div>
+                <div className="col-span-2 text-center">Added</div>
+                <div className="col-span-2 text-center">Actions</div>
+              </div>
+              
+              {collaborators.map((collaborator, index) => (
+                <div 
+                  key={collaborator.id}
+                  className={`grid grid-cols-12 p-4 ${
+                    index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                  }`}
+                >
+                  <div className="col-span-5 flex items-center space-x-3">
+                    <img 
+                      src={collaborator.avatar} 
+                      alt={collaborator.name} 
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                    <div>
+                      <div className="font-medium text-gray-900">{collaborator.name}</div>
+                      <div className="text-xs text-gray-500">{collaborator.email}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="col-span-3 flex items-center">
+                    <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${
+                      collaborator.accessLevel === 'full' 
+                        ? 'bg-green-100 text-green-700' 
+                        : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {collaborator.accessLevel === 'full' ? (
+                        <ShieldCheck className="h-3 w-3" />
+                      ) : (
+                        <Lock className="h-3 w-3" />
+                      )}
+                      <span>
+                        {collaborator.accessLevel === 'full' ? 'Full Access' : 'Limited Access'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="col-span-2 flex justify-center items-center text-sm text-gray-500">
+                    {new Date(collaborator.dateAdded).toLocaleDateString()}
+                  </div>
+                  
+                  <div className="col-span-2 flex justify-center items-center space-x-2">
+                    <button className="p-1 bg-gray-100 rounded hover:bg-gray-200 transition-colors">
+                      <Settings className="h-4 w-4 text-gray-600" />
+                    </button>
+                    <button className="p-1 bg-red-100 rounded hover:bg-red-200 transition-colors">
+                      <X className="h-4 w-4 text-red-600" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-[#2A6F68]/10 rounded-lg flex items-center justify-center">
+                    <UserCheck className="h-5 w-5 text-[#2A6F68]" />
+                  </div>
+                  <h3 className="font-semibold text-[#333333]">Access Levels</h3>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="p-3 bg-green-50 rounded-lg border border-green-100">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <ShieldCheck className="h-4 w-4 text-green-600" />
+                      <span className="font-medium text-green-800">Full Access</span>
+                    </div>
+                    <p className="text-sm text-green-700">
+                      Can view all financial data, edit goals, and manage transactions. Ideal for spouses or financial advisors.
+                    </p>
+                  </div>
+                  
+                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <Lock className="h-4 w-4 text-blue-600" />
+                      <span className="font-medium text-blue-800">Limited Access</span>
+                    </div>
+                    <p className="text-sm text-blue-700">
+                      Can view specific goals and limited financial data. Cannot edit or make changes. Good for accountability partners.
+                    </p>
+                  </div>
+                  
+                  <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <Users className="h-4 w-4 text-purple-600" />
+                      <span className="font-medium text-purple-800">View Only</span>
+                    </div>
+                    <p className="text-sm text-purple-700">
+                      Can only view progress summaries and achievements. No access to sensitive financial details.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-[#B76E79]/10 rounded-lg flex items-center justify-center">
+                    <Bell className="h-5 w-5 text-[#B76E79]" />
+                  </div>
+                  <h3 className="font-semibold text-[#333333]">Collaboration Settings</h3>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <div className="font-medium text-gray-800">Notification Preferences</div>
+                      <p className="text-xs text-gray-500">
+                        Control when you receive alerts about collaborator activity
+                      </p>
+                    </div>
+                    <button className="text-[#2A6F68] text-sm font-medium">
+                      Configure
+                    </button>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <div className="font-medium text-gray-800">Privacy Controls</div>
+                      <p className="text-xs text-gray-500">
+                        Manage what information is shared with collaborators
+                      </p>
+                    </div>
+                    <button className="text-[#2A6F68] text-sm font-medium">
+                      Configure
+                    </button>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <div className="font-medium text-gray-800">Activity Log</div>
+                      <p className="text-xs text-gray-500">
+                        View a history of all collaborator actions
+                      </p>
+                    </div>
+                    <button className="text-[#2A6F68] text-sm font-medium">
+                      View Log
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Invite Modal */}
+      <AnimatePresence>
+        {showInviteModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowInviteModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden"
+            >
+              <div className="bg-gradient-to-r from-[#2A6F68] to-[#B76E79] p-4 text-white">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold">Invite to Collaborate</h2>
+                  <button
+                    onClick={() => setShowInviteModal(false)}
+                    className="p-1 hover:bg-white/20 rounded transition-colors"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-6">
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input
+                      type="email"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      placeholder="Enter email address"
+                      className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all"
+                    />
+                  </div>
+                </div>
+                
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Access Level
+                  </label>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <input 
+                        type="radio" 
+                        id="full-access" 
+                        name="access-level" 
+                        className="h-4 w-4 text-[#2A6F68] focus:ring-[#2A6F68]" 
+                        defaultChecked 
+                      />
+                      <label htmlFor="full-access" className="text-sm text-gray-700">Full Access</label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input 
+                        type="radio" 
+                        id="limited-access" 
+                        name="access-level" 
+                        className="h-4 w-4 text-[#2A6F68] focus:ring-[#2A6F68]" 
+                      />
+                      <label htmlFor="limited-access" className="text-sm text-gray-700">Limited Access</label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input 
+                        type="radio" 
+                        id="view-only" 
+                        name="access-level" 
+                        className="h-4 w-4 text-[#2A6F68] focus:ring-[#2A6F68]" 
+                      />
+                      <label htmlFor="view-only" className="text-sm text-gray-700">View Only</label>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Personal Message (Optional)
+                  </label>
+                  <textarea
+                    placeholder="Add a personal message to your invitation..."
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all"
+                  ></textarea>
+                </div>
+                
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setShowInviteModal(false)}
+                    className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleInviteSubmit}
+                    disabled={!inviteEmail}
+                    className="flex-1 bg-[#2A6F68] text-white px-4 py-3 rounded-lg hover:bg-[#235A54] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                  >
+                    Send Invitation
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Create Circle Modal */}
+      <AnimatePresence>
+        {showCreateCircleModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowCreateCircleModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden"
+            >
+              <div className="bg-gradient-to-r from-[#2A6F68] to-[#B76E79] p-4 text-white">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold">Create Money Circle</h2>
+                  <button
+                    onClick={() => setShowCreateCircleModal(false)}
+                    className="p-1 hover:bg-white/20 rounded transition-colors"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-6">
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Circle Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newCircleData.name}
+                    onChange={(e) => setNewCircleData({...newCircleData, name: e.target.value})}
+                    placeholder="e.g., Family Budget Group"
+                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all"
+                    required
+                  />
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Circle Type
+                  </label>
+                  <select
+                    value={newCircleData.type}
+                    onChange={(e) => setNewCircleData({...newCircleData, type: e.target.value})}
+                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all"
+                  >
+                    <option value="savings">Savings Group</option>
+                    <option value="investment">Investment Club</option>
+                    <option value="debt">Debt Payoff</option>
+                    <option value="family">Family Finance</option>
+                    <option value="friends">Friends Group</option>
+                  </select>
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    value={newCircleData.description}
+                    onChange={(e) => setNewCircleData({...newCircleData, description: e.target.value})}
+                    placeholder="What's the purpose of this circle?"
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all"
+                  ></textarea>
+                </div>
+                
+                <div className="mb-6">
+                  <div className="flex items-center space-x-2">
+                    <input 
+                      type="checkbox" 
+                      id="private-circle" 
+                      checked={newCircleData.isPrivate}
+                      onChange={(e) => setNewCircleData({...newCircleData, isPrivate: e.target.checked})}
+                      className="h-4 w-4 text-[#2A6F68] focus:ring-[#2A6F68] rounded" 
+                    />
+                    <label htmlFor="private-circle" className="text-sm text-gray-700">Make this circle private (invitation only)</label>
+                  </div>
+                </div>
+                
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setShowCreateCircleModal(false)}
+                    className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleCreateCircle}
+                    disabled={!newCircleData.name}
+                    className="flex-1 bg-[#2A6F68] text-white px-4 py-3 rounded-lg hover:bg-[#235A54] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                  >
+                    Create Circle
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
+
+// Custom badge icons
+const PiggyBankIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"></path>
+    <path d="M2 9v1c0 1.1.9 2 2 2h1"></path>
+    <path d="M16 11a2 2 0 0 0-2-2"></path>
+  </svg>
+);
+
+const CalculatorIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+    <line x1="8" x2="16" y1="6" y2="6"></line>
+    <line x1="16" x2="16" y1="14" y2="18"></line>
+    <path d="M16 10h.01"></path>
+    <path d="M12 10h.01"></path>
+    <path d="M8 10h.01"></path>
+    <path d="M12 14h.01"></path>
+    <path d="M8 14h.01"></path>
+    <path d="M12 18h.01"></path>
+    <path d="M8 18h.01"></path>
+  </svg>
+);
+
+const TrophyIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+    <path d="M4 22h16"></path>
+    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
+    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
+    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
+  </svg>
+);
+
+const ChartIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 3v18h18"></path>
+    <path d="m19 9-5 5-4-4-3 3"></path>
+  </svg>
+);
+
+const TargetIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"></circle>
+    <circle cx="12" cy="12" r="6"></circle>
+    <circle cx="12" cy="12" r="2"></circle>
+  </svg>
+);
+
+const BookIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
+  </svg>
+);
+
+const UsersIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+    <circle cx="9" cy="7" r="4"></circle>
+    <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+  </svg>
+);
+
+const FlameIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+  </svg>
+);
 
 export default CommunityPage;
