@@ -7,361 +7,587 @@ import {
   Award, 
   Share2, 
   Plus, 
-  CheckCircle, 
-  Clock, 
-  Calendar, 
-  ArrowRight, 
-  UserPlus, 
-  X, 
-  Mail, 
   Search, 
   Filter, 
   ChevronDown, 
+  X, 
+  Check, 
+  Clock, 
+  Zap, 
   Star, 
-  Zap,
+  Mail, 
+  UserPlus, 
+  Settings, 
+  Lock, 
+  Eye, 
+  EyeOff, 
   MessageCircle,
-  Bell,
-  Settings,
-  UserCheck,
-  ShieldCheck,
-  Lock
+  Heart,
+  Repeat,
+  MoreHorizontal,
+  Image,
+  Send,
+  Calendar,
+  TrendingUp,
+  PiggyBank,
+  DollarSign
 } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { useUserProfile } from '../hooks/useUserProfile';
+import { useXP } from '../hooks/useXP';
 
 interface CommunityPageProps {
   user: User;
   onXPUpdate: (points: number) => void;
 }
 
+interface CommunityPost {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  content: string;
+  image?: string;
+  likes: number;
+  comments: number;
+  shares: number;
+  timestamp: Date;
+  achievement?: {
+    type: string;
+    title: string;
+    icon: React.ElementType;
+  };
+  liked?: boolean;
+}
+
+interface MoneyCircle {
+  id: string;
+  name: string;
+  description: string;
+  members: number;
+  progress: number;
+  goalAmount: number;
+  currentAmount: number;
+  isPrivate: boolean;
+  isJoined: boolean;
+}
+
+interface Quest {
+  id: string;
+  title: string;
+  description: string;
+  xpReward: number;
+  daysLeft: number;
+  progress: number;
+  isCompleted: boolean;
+  icon: React.ElementType;
+}
+
+interface LeaderboardUser {
+  id: string;
+  name: string;
+  avatar: string;
+  xp: number;
+  savingsRate: number;
+  streakDays: number;
+  isCurrentUser: boolean;
+}
+
+interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ElementType;
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  isEarned: boolean;
+  progress?: number;
+  earnedDate?: Date;
+}
+
+interface Collaborator {
+  id: string;
+  name: string;
+  avatar: string;
+  email: string;
+  accessLevel: 'full' | 'limited' | 'view';
+  status: 'active' | 'pending';
+}
+
 const CommunityPage: React.FC<CommunityPageProps> = ({ user, onXPUpdate }) => {
-  const [activeTab, setActiveTab] = useState<'circles' | 'quests' | 'leaderboard' | 'badges' | 'collaboration'>('circles');
-  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'circles' | 'quests' | 'leaderboard' | 'badges' | 'collaboration' | 'feed'>('feed');
   const [showCreateCircleModal, setShowCreateCircleModal] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all');
+  const [newPost, setNewPost] = useState('');
   const { getDisplayName } = useUserProfile(user);
+  const { getCurrentLevel } = useXP(user);
   
+  const displayName = getDisplayName();
+  const level = getCurrentLevel();
+
   // Sample data for Money Circles
-  const [moneyCircles, setMoneyCircles] = useState([
+  const [moneyCircles, setMoneyCircles] = useState<MoneyCircle[]>([
     {
       id: '1',
-      name: 'Family Budget Group',
-      members: ['Sarah J.', 'Michael T.', 'Jessica R.'],
-      memberCount: 3,
-      type: 'family',
-      lastActive: '2 hours ago',
-      goalProgress: 75,
-      unreadMessages: 2,
-      isAdmin: true
+      name: 'Family Savings Challenge',
+      description: 'Our family working together to save for our annual vacation',
+      members: 4,
+      progress: 65,
+      goalAmount: 5000,
+      currentAmount: 3250,
+      isPrivate: true,
+      isJoined: true
     },
     {
       id: '2',
-      name: 'Investment Club',
-      members: ['David K.', 'Lisa M.', 'Robert P.', 'Emma S.', 'John D.'],
-      memberCount: 5,
-      type: 'investment',
-      lastActive: '1 day ago',
-      goalProgress: 60,
-      unreadMessages: 0,
-      isAdmin: false
+      name: 'Debt Destroyers',
+      description: 'Friends supporting each other to eliminate debt',
+      members: 6,
+      progress: 42,
+      goalAmount: 15000,
+      currentAmount: 6300,
+      isPrivate: false,
+      isJoined: true
     },
     {
       id: '3',
-      name: 'Homebuyers Support',
-      members: ['Alex B.', 'Taylor W.'],
-      memberCount: 2,
-      type: 'savings',
-      lastActive: '3 days ago',
-      goalProgress: 45,
-      unreadMessages: 5,
-      isAdmin: true
+      name: 'Investment Club',
+      description: 'Learning and growing our investments together',
+      members: 12,
+      progress: 78,
+      goalAmount: 10000,
+      currentAmount: 7800,
+      isPrivate: false,
+      isJoined: false
     }
   ]);
 
   // Sample data for Weekly Quests
-  const [weeklyQuests, setWeeklyQuests] = useState([
+  const [quests, setQuests] = useState<Quest[]>([
     {
       id: '1',
       title: 'Transaction Tracker',
       description: 'Log every transaction for 5 consecutive days',
-      progress: 3,
-      total: 5,
       xpReward: 50,
-      daysLeft: 4,
-      completed: false
+      daysLeft: 3,
+      progress: 60,
+      isCompleted: false,
+      icon: Calendar
     },
     {
       id: '2',
       title: 'Budget Master',
-      description: 'Stay under budget in 3 spending categories',
-      progress: 2,
-      total: 3,
+      description: 'Stay under budget in all categories for one week',
       xpReward: 75,
-      daysLeft: 2,
-      completed: false
+      daysLeft: 5,
+      progress: 85,
+      isCompleted: false,
+      icon: DollarSign
     },
     {
       id: '3',
       title: 'Savings Streak',
-      description: 'Add to your savings goal 3 times this week',
-      progress: 3,
-      total: 3,
-      xpReward: 100,
-      daysLeft: 1,
-      completed: true
+      description: 'Transfer money to savings 3 days in a row',
+      xpReward: 30,
+      daysLeft: 2,
+      progress: 100,
+      isCompleted: true,
+      icon: PiggyBank
     },
     {
       id: '4',
-      title: 'Financial Learner',
-      description: 'Complete 2 learning modules this week',
-      progress: 1,
-      total: 2,
-      xpReward: 60,
-      daysLeft: 3,
-      completed: false
+      title: 'Investment Insight',
+      description: 'Research and add a new investment to your watchlist',
+      xpReward: 40,
+      daysLeft: 4,
+      progress: 25,
+      isCompleted: false,
+      icon: TrendingUp
     }
   ]);
 
   // Sample data for Leaderboard
-  const [leaderboardUsers, setLeaderboardUsers] = useState([
+  const [leaderboardUsers, setLeaderboardUsers] = useState<LeaderboardUser[]>([
     {
       id: '1',
-      name: 'Jessica R.',
+      name: 'Sarah Johnson',
       avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150',
       xp: 1250,
-      rank: 1,
-      badges: 8,
       savingsRate: 32,
-      streak: 45
+      streakDays: 45,
+      isCurrentUser: false
     },
     {
       id: '2',
-      name: 'Michael T.',
+      name: 'Michael Chen',
       avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150',
-      xp: 1120,
-      rank: 2,
-      badges: 7,
+      xp: 980,
       savingsRate: 28,
-      streak: 30
+      streakDays: 30,
+      isCurrentUser: false
     },
     {
       id: '3',
-      name: 'Emma S.',
+      name: displayName,
       avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150',
-      xp: 980,
-      rank: 3,
-      badges: 6,
+      xp: 875,
       savingsRate: 25,
-      streak: 21
+      streakDays: 21,
+      isCurrentUser: true
     },
     {
       id: '4',
-      name: 'David K.',
+      name: 'David Rodriguez',
       avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150',
-      xp: 875,
-      rank: 4,
-      badges: 5,
+      xp: 750,
       savingsRate: 22,
-      streak: 14
+      streakDays: 15,
+      isCurrentUser: false
     },
     {
       id: '5',
-      name: getDisplayName(),
-      avatar: 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=150',
-      xp: 820,
-      rank: 5,
-      badges: 4,
-      savingsRate: 20,
-      streak: 10
+      name: 'Emma Wilson',
+      avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150',
+      xp: 620,
+      savingsRate: 18,
+      streakDays: 12,
+      isCurrentUser: false
     }
   ]);
 
   // Sample data for Badges
-  const [badges, setBadges] = useState([
+  const [badges, setBadges] = useState<Badge[]>([
     {
       id: '1',
-      name: 'Savings Champion',
-      description: 'Reached 20% savings rate for 3 consecutive months',
-      icon: <PiggyBankIcon />,
-      earned: true,
-      date: '2025-05-15',
-      rarity: 'rare',
-      xpAwarded: 200
+      name: 'Savings Samurai',
+      description: 'Saved 20% of income for 3 consecutive months',
+      icon: Award,
+      rarity: 'legendary',
+      isEarned: true,
+      earnedDate: new Date(2025, 5, 15)
     },
     {
       id: '2',
-      name: 'Budget Master',
-      description: 'Stayed under budget in all categories for a full month',
-      icon: <CalculatorIcon />,
-      earned: true,
-      date: '2025-04-30',
-      rarity: 'uncommon',
-      xpAwarded: 150
+      name: 'Budget Ninja',
+      description: 'Stayed under budget in all categories for a month',
+      icon: Target,
+      rarity: 'epic',
+      isEarned: true,
+      earnedDate: new Date(2025, 4, 28)
     },
     {
       id: '3',
-      name: 'Debt Destroyer',
-      description: 'Paid off a debt account completely',
-      icon: <TrophyIcon />,
-      earned: true,
-      date: '2025-03-22',
+      name: 'Investment Guru',
+      description: 'Maintained a diversified portfolio for 6 months',
+      icon: Trophy,
       rarity: 'rare',
-      xpAwarded: 250
+      isEarned: false,
+      progress: 75
     },
     {
       id: '4',
-      name: 'Investment Guru',
-      description: 'Started your first investment account',
-      icon: <ChartIcon />,
-      earned: true,
-      date: '2025-02-10',
-      rarity: 'common',
-      xpAwarded: 100
+      name: 'Debt Destroyer',
+      description: 'Paid off a major debt ahead of schedule',
+      icon: Award,
+      rarity: 'epic',
+      isEarned: false,
+      progress: 50
     },
     {
       id: '5',
-      name: 'Goal Crusher',
-      description: 'Achieved a financial goal ahead of schedule',
-      icon: <TargetIcon />,
-      earned: false,
-      rarity: 'epic',
-      xpAwarded: 300
+      name: 'Emergency Fund Hero',
+      description: 'Built a full 6-month emergency fund',
+      icon: Shield,
+      rarity: 'rare',
+      isEarned: true,
+      earnedDate: new Date(2025, 3, 10)
     },
     {
       id: '6',
-      name: 'Knowledge Seeker',
-      description: 'Completed 10 learning modules',
-      icon: <BookIcon />,
-      earned: false,
+      name: 'Goal Crusher',
+      description: 'Achieved 3 financial goals',
+      icon: Target,
       rarity: 'uncommon',
-      xpAwarded: 150
+      isEarned: true,
+      earnedDate: new Date(2025, 2, 5)
     },
     {
       id: '7',
-      name: 'Community Leader',
-      description: 'Created a Money Circle with 5+ active members',
-      icon: <UsersIcon />,
-      earned: false,
-      rarity: 'legendary',
-      xpAwarded: 500
+      name: 'Streak Master',
+      description: 'Logged in for 30 consecutive days',
+      icon: Flame,
+      rarity: 'common',
+      isEarned: true,
+      earnedDate: new Date(2025, 1, 20)
     },
     {
       id: '8',
-      name: 'Streak Master',
-      description: 'Logged in for 30 consecutive days',
-      icon: <FlameIcon />,
-      earned: false,
-      rarity: 'rare',
-      xpAwarded: 200
+      name: 'Financial Bookworm',
+      description: 'Completed 10 learning modules',
+      icon: BookOpen,
+      rarity: 'uncommon',
+      isEarned: false,
+      progress: 60
     }
   ]);
 
-  // Sample data for Collaboration
-  const [collaborators, setCollaborators] = useState([
+  // Sample data for Collaborators
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([
     {
       id: '1',
-      name: 'Sarah Johnson',
-      email: 'sarah.j@example.com',
-      avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150',
+      name: 'Alex Johnson',
+      avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150',
+      email: 'alex.johnson@example.com',
       accessLevel: 'full',
-      dateAdded: '2025-05-01',
-      lastActive: '2 hours ago'
+      status: 'active'
     },
     {
       id: '2',
-      name: 'Michael Thompson',
-      email: 'michael.t@example.com',
-      avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150',
+      name: 'Jamie Smith',
+      avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150',
+      email: 'jamie.smith@example.com',
       accessLevel: 'limited',
-      dateAdded: '2025-04-15',
-      lastActive: '1 day ago'
+      status: 'active'
+    },
+    {
+      id: '3',
+      name: 'Taylor Wilson',
+      avatar: 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=150',
+      email: 'taylor.wilson@example.com',
+      accessLevel: 'view',
+      status: 'pending'
     }
   ]);
 
-  const [newCircleData, setNewCircleData] = useState({
-    name: '',
-    type: 'savings',
-    description: '',
-    isPrivate: false
-  });
+  // Sample data for Community Feed
+  const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([
+    {
+      id: '1',
+      userId: '1',
+      userName: 'Sarah Johnson',
+      userAvatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150',
+      content: 'Just hit my emergency fund goal of $10,000! 🎉 Six months of expenses saved and ready for whatever life throws my way. #FinancialFreedom',
+      likes: 24,
+      comments: 7,
+      shares: 3,
+      timestamp: new Date(2025, 5, 28, 14, 30),
+      achievement: {
+        type: 'goal',
+        title: 'Emergency Fund Complete',
+        icon: Shield
+      }
+    },
+    {
+      id: '2',
+      userId: '2',
+      userName: 'Michael Chen',
+      userAvatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150',
+      content: 'Weekly tip: I've been using the "envelope method" for discretionary spending and it's been a game-changer. No more end-of-month surprises!',
+      likes: 18,
+      comments: 5,
+      shares: 8,
+      timestamp: new Date(2025, 5, 27, 9, 15)
+    },
+    {
+      id: '3',
+      userId: '3',
+      userName: displayName,
+      userAvatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150',
+      content: 'Just completed my first month of zero-based budgeting and found an extra $200 I didn't know I had! What should I do with it - extra debt payment or boost my investments?',
+      image: 'https://images.pexels.com/photos/4386158/pexels-photo-4386158.jpeg?auto=compress&cs=tinysrgb&w=500',
+      likes: 32,
+      comments: 12,
+      shares: 2,
+      timestamp: new Date(2025, 5, 26, 18, 45),
+      liked: true
+    },
+    {
+      id: '4',
+      userId: '4',
+      userName: 'Emma Wilson',
+      userAvatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150',
+      content: 'Celebrating paying off my last credit card today! $12,500 gone in 14 months through the debt snowball method. Next up: student loans! #DebtFreeJourney',
+      likes: 45,
+      comments: 15,
+      shares: 7,
+      timestamp: new Date(2025, 5, 25, 12, 10),
+      achievement: {
+        type: 'milestone',
+        title: 'Debt Free',
+        icon: Award
+      }
+    },
+    {
+      id: '5',
+      userId: '5',
+      userName: 'David Rodriguez',
+      userAvatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150',
+      content: 'Just earned the "Investment Guru" badge by maintaining a diversified portfolio for 6 months! The automatic rebalancing feature has been super helpful.',
+      likes: 29,
+      comments: 8,
+      shares: 4,
+      timestamp: new Date(2025, 5, 24, 16, 20),
+      achievement: {
+        type: 'badge',
+        title: 'Investment Guru',
+        icon: Trophy
+      }
+    }
+  ]);
 
-  const handleCreateCircle = () => {
-    if (!newCircleData.name) return;
+  const handleQuestComplete = (questId: string) => {
+    setQuests(prev => prev.map(quest => 
+      quest.id === questId ? { ...quest, isCompleted: true, progress: 100 } : quest
+    ));
     
-    const newCircle = {
-      id: (moneyCircles.length + 1).toString(),
-      name: newCircleData.name,
-      members: [getDisplayName()],
-      memberCount: 1,
-      type: newCircleData.type,
-      lastActive: 'Just now',
-      goalProgress: 0,
-      unreadMessages: 0,
-      isAdmin: true
-    };
+    // Award XP
+    const quest = quests.find(q => q.id === questId);
+    if (quest && !quest.isCompleted) {
+      onXPUpdate(quest.xpReward);
+    }
+  };
+
+  const handleJoinCircle = (circleId: string) => {
+    setMoneyCircles(prev => prev.map(circle => 
+      circle.id === circleId ? { ...circle, isJoined: true } : circle
+    ));
     
-    setMoneyCircles([newCircle, ...moneyCircles]);
-    setNewCircleData({
-      name: '',
-      type: 'savings',
-      description: '',
-      isPrivate: false
-    });
-    setShowCreateCircleModal(false);
-    
-    // Award XP for creating a circle
+    // Award XP for joining a circle
     onXPUpdate(25);
   };
 
-  const handleInviteSubmit = () => {
-    if (!inviteEmail) return;
+  const handleCreateCircle = (name: string, description: string, isPrivate: boolean, goalAmount: number) => {
+    const newCircle: MoneyCircle = {
+      id: Date.now().toString(),
+      name,
+      description,
+      members: 1,
+      progress: 0,
+      goalAmount,
+      currentAmount: 0,
+      isPrivate,
+      isJoined: true
+    };
     
-    // In a real app, this would send an invitation
-    console.log(`Invitation sent to: ${inviteEmail}`);
-    setInviteEmail('');
+    setMoneyCircles(prev => [...prev, newCircle]);
+    setShowCreateCircleModal(false);
+    
+    // Award XP for creating a circle
+    onXPUpdate(50);
+  };
+
+  const handleInviteCollaborator = (email: string, accessLevel: 'full' | 'limited' | 'view') => {
+    const newCollaborator: Collaborator = {
+      id: Date.now().toString(),
+      name: email.split('@')[0],
+      avatar: 'https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=150',
+      email,
+      accessLevel,
+      status: 'pending'
+    };
+    
+    setCollaborators(prev => [...prev, newCollaborator]);
     setShowInviteModal(false);
+  };
+
+  const handleRemoveCollaborator = (collaboratorId: string) => {
+    setCollaborators(prev => prev.filter(c => c.id !== collaboratorId));
+  };
+
+  const handleUpdateCollaboratorAccess = (collaboratorId: string, accessLevel: 'full' | 'limited' | 'view') => {
+    setCollaborators(prev => prev.map(c => 
+      c.id === collaboratorId ? { ...c, accessLevel } : c
+    ));
+  };
+
+  const handlePostSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPost.trim()) return;
     
-    // Award XP for inviting someone
+    const newCommunityPost: CommunityPost = {
+      id: Date.now().toString(),
+      userId: user.id,
+      userName: displayName,
+      userAvatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150',
+      content: newPost,
+      likes: 0,
+      comments: 0,
+      shares: 0,
+      timestamp: new Date(),
+      liked: false
+    };
+    
+    setCommunityPosts(prev => [newCommunityPost, ...prev]);
+    setNewPost('');
+    
+    // Award XP for posting
     onXPUpdate(10);
   };
 
-  const handleQuestProgress = (questId: string) => {
-    setWeeklyQuests(quests => 
-      quests.map(quest => {
-        if (quest.id === questId && !quest.completed) {
-          const newProgress = quest.progress + 1;
-          const completed = newProgress >= quest.total;
-          
-          // Award XP if quest is completed
-          if (completed && !quest.completed) {
-            onXPUpdate(quest.xpReward);
-          }
-          
-          return {
-            ...quest,
-            progress: newProgress,
-            completed: completed
-          };
-        }
-        return quest;
-      })
-    );
+  const handleLikePost = (postId: string) => {
+    setCommunityPosts(prev => prev.map(post => {
+      if (post.id === postId) {
+        const isLiked = post.liked || false;
+        return {
+          ...post,
+          likes: isLiked ? post.likes - 1 : post.likes + 1,
+          liked: !isLiked
+        };
+      }
+      return post;
+    }));
   };
 
-  const filteredBadges = badges.filter(badge => {
-    if (filterType === 'earned') return badge.earned;
-    if (filterType === 'unearned') return !badge.earned;
-    return true;
-  }).filter(badge => 
-    badge.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    badge.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const formatTimeAgo = (date: Date) => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+    
+    if (diffDay > 0) {
+      return `${diffDay}d ago`;
+    } else if (diffHour > 0) {
+      return `${diffHour}h ago`;
+    } else if (diffMin > 0) {
+      return `${diffMin}m ago`;
+    } else {
+      return 'Just now';
+    }
+  };
+
+  const getRarityColor = (rarity: string) => {
+    switch (rarity) {
+      case 'legendary': return 'from-yellow-400 to-amber-600';
+      case 'epic': return 'from-purple-400 to-purple-600';
+      case 'rare': return 'from-blue-400 to-blue-600';
+      case 'uncommon': return 'from-green-400 to-green-600';
+      default: return 'from-gray-400 to-gray-600';
+    }
+  };
+
+  const getAccessLevelColor = (level: string) => {
+    switch (level) {
+      case 'full': return 'bg-green-100 text-green-800';
+      case 'limited': return 'bg-blue-100 text-blue-800';
+      case 'view': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getAccessLevelLabel = (level: string) => {
+    switch (level) {
+      case 'full': return 'Full Access';
+      case 'limited': return 'Limited Access';
+      case 'view': return 'View Only';
+      default: return 'Unknown';
+    }
+  };
 
   const filteredCircles = moneyCircles.filter(circle => 
     circle.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    circle.type.toLowerCase().includes(searchTerm.toLowerCase())
+    circle.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -374,1055 +600,623 @@ const CommunityPage: React.FC<CommunityPageProps> = ({ user, onXPUpdate }) => {
           </div>
           <div>
             <h1 className="text-xl font-bold">Community Dojo</h1>
-            <p className="text-white/90 text-sm">Connect, compete, and collaborate with fellow financial warriors</p>
+            <p className="text-white/90 text-sm">Train together, grow together, achieve together</p>
           </div>
         </div>
         
         <div className="bg-white/20 rounded-lg px-3 py-1 text-sm">
-          <span className="text-white font-medium">{moneyCircles.length} Circles</span>
+          <span className="text-white font-medium">Level {level}</span>
           <span className="mx-2 text-white/60">•</span>
-          <span className="text-white/90">{weeklyQuests.filter(q => q.completed).length}/{weeklyQuests.length} Quests</span>
+          <span className="text-white/90">{leaderboardUsers.find(u => u.isCurrentUser)?.xp || 0} XP</span>
         </div>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="bg-white rounded-xl p-1 shadow-sm border border-gray-200">
-        <div className="grid grid-cols-5 gap-1">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="flex overflow-x-auto scrollbar-hide">
+          <button
+            onClick={() => setActiveTab('feed')}
+            className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 ${
+              activeTab === 'feed'
+                ? 'border-[#2A6F68] text-[#2A6F68]'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <div className="flex items-center justify-center space-x-2">
+              <MessageCircle className="h-5 w-5" />
+              <span>Community Feed</span>
+            </div>
+          </button>
           <button
             onClick={() => setActiveTab('circles')}
-            className={`flex flex-col items-center justify-center py-3 px-4 rounded-lg transition-all ${
+            className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 ${
               activeTab === 'circles'
-                ? 'bg-[#2A6F68] text-white'
-                : 'text-gray-700 hover:bg-gray-100'
+                ? 'border-[#2A6F68] text-[#2A6F68]'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            <Users className="h-5 w-5 mb-1" />
-            <span className="text-xs font-medium">Money Circles</span>
+            <div className="flex items-center justify-center space-x-2">
+              <Users className="h-5 w-5" />
+              <span>Money Circles</span>
+            </div>
           </button>
-          
           <button
             onClick={() => setActiveTab('quests')}
-            className={`flex flex-col items-center justify-center py-3 px-4 rounded-lg transition-all ${
+            className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 ${
               activeTab === 'quests'
-                ? 'bg-[#2A6F68] text-white'
-                : 'text-gray-700 hover:bg-gray-100'
+                ? 'border-[#2A6F68] text-[#2A6F68]'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            <Target className="h-5 w-5 mb-1" />
-            <span className="text-xs font-medium">Weekly Quests</span>
+            <div className="flex items-center justify-center space-x-2">
+              <Target className="h-5 w-5" />
+              <span>Weekly Quests</span>
+            </div>
           </button>
-          
           <button
             onClick={() => setActiveTab('leaderboard')}
-            className={`flex flex-col items-center justify-center py-3 px-4 rounded-lg transition-all ${
+            className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 ${
               activeTab === 'leaderboard'
-                ? 'bg-[#2A6F68] text-white'
-                : 'text-gray-700 hover:bg-gray-100'
+                ? 'border-[#2A6F68] text-[#2A6F68]'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            <Trophy className="h-5 w-5 mb-1" />
-            <span className="text-xs font-medium">Leaderboard</span>
+            <div className="flex items-center justify-center space-x-2">
+              <Trophy className="h-5 w-5" />
+              <span>Leaderboard</span>
+            </div>
           </button>
-          
           <button
             onClick={() => setActiveTab('badges')}
-            className={`flex flex-col items-center justify-center py-3 px-4 rounded-lg transition-all ${
+            className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 ${
               activeTab === 'badges'
-                ? 'bg-[#2A6F68] text-white'
-                : 'text-gray-700 hover:bg-gray-100'
+                ? 'border-[#2A6F68] text-[#2A6F68]'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            <Award className="h-5 w-5 mb-1" />
-            <span className="text-xs font-medium">Badges</span>
+            <div className="flex items-center justify-center space-x-2">
+              <Award className="h-5 w-5" />
+              <span>Badges</span>
+            </div>
           </button>
-          
           <button
             onClick={() => setActiveTab('collaboration')}
-            className={`flex flex-col items-center justify-center py-3 px-4 rounded-lg transition-all ${
+            className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 ${
               activeTab === 'collaboration'
-                ? 'bg-[#2A6F68] text-white'
-                : 'text-gray-700 hover:bg-gray-100'
+                ? 'border-[#2A6F68] text-[#2A6F68]'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            <Share2 className="h-5 w-5 mb-1" />
-            <span className="text-xs font-medium">Collaboration</span>
+            <div className="flex items-center justify-center space-x-2">
+              <Share2 className="h-5 w-5" />
+              <span>Collaboration</span>
+            </div>
           </button>
         </div>
       </div>
 
-      {/* Content Area */}
-      <AnimatePresence mode="wait">
-        {/* Money Circles */}
-        {activeTab === 'circles' && (
-          <motion.div
-            key="circles"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-6"
-          >
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-[#333333]">Your Money Circles</h2>
-              <div className="flex space-x-3">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search circles..."
-                    className="pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all w-48 md:w-64"
-                  />
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowCreateCircleModal(true)}
-                  className="flex items-center space-x-2 bg-[#2A6F68] text-white px-3 py-2 rounded-lg hover:bg-[#235A54] transition-colors"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Create Circle</span>
-                </motion.button>
-              </div>
-            </div>
-
-            {filteredCircles.length === 0 ? (
-              <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-200 text-center">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Users className="h-8 w-8 text-gray-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-[#333333] mb-2">No Money Circles Found</h3>
-                <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                  {searchTerm ? 'No circles match your search. Try different keywords.' : 'Create your first Money Circle to start collaborating with friends and family on financial goals.'}
-                </p>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowCreateCircleModal(true)}
-                  className="inline-flex items-center space-x-2 bg-[#2A6F68] text-white px-4 py-2 rounded-lg hover:bg-[#235A54] transition-colors"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Create Your First Circle</span>
-                </motion.button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredCircles.map((circle) => (
-                  <motion.div
-                    key={circle.id}
-                    whileHover={{ y: -5 }}
-                    className="bg-white rounded-xl p-5 shadow-sm border border-gray-200 hover:shadow-md transition-all"
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-[#2A6F68]/10 rounded-lg flex items-center justify-center">
-                          <Users className="h-5 w-5 text-[#2A6F68]" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-[#333333]">{circle.name}</h3>
-                          <p className="text-xs text-gray-500">{circle.memberCount} members • {circle.type}</p>
-                        </div>
-                      </div>
-                      {circle.unreadMessages > 0 && (
-                        <div className="bg-[#B76E79] text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
-                          {circle.unreadMessages}
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="mb-3">
-                      <div className="flex justify-between text-xs text-gray-500 mb-1">
-                        <span>Goal Progress</span>
-                        <span>{circle.goalProgress}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-[#2A6F68] h-2 rounded-full" 
-                          style={{ width: `${circle.goalProgress}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex -space-x-2 mb-3">
-                      {circle.members.slice(0, 3).map((member, index) => (
-                        <div 
-                          key={index} 
-                          className="w-8 h-8 rounded-full bg-gray-300 border-2 border-white flex items-center justify-center text-xs font-medium text-gray-800"
-                        >
-                          {member.charAt(0)}
-                        </div>
-                      ))}
-                      {circle.members.length > 3 && (
-                        <div className="w-8 h-8 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-xs font-medium text-gray-800">
-                          +{circle.members.length - 3}
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-gray-500">Active {circle.lastActive}</span>
-                      <div className="flex space-x-2">
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => setShowInviteModal(true)}
-                          className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                        >
-                          <UserPlus className="h-4 w-4 text-gray-600" />
-                        </motion.button>
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          className="p-2 bg-[#2A6F68] rounded-lg hover:bg-[#235A54] transition-colors"
-                        >
-                          <MessageCircle className="h-4 w-4 text-white" />
-                        </motion.button>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-
-            <div className="bg-[#2A6F68]/5 rounded-xl p-5 border border-[#2A6F68]/20">
+      {/* Community Feed */}
+      {activeTab === 'feed' && (
+        <div className="space-y-6">
+          {/* Create Post */}
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+            <form onSubmit={handlePostSubmit}>
               <div className="flex items-start space-x-3">
-                <div className="w-10 h-10 bg-[#2A6F68]/20 rounded-lg flex items-center justify-center mt-1">
+                <div className="w-10 h-10 rounded-full bg-[#2A6F68]/10 flex items-center justify-center">
                   <Users className="h-5 w-5 text-[#2A6F68]" />
                 </div>
-                <div>
-                  <h3 className="font-semibold text-[#2A6F68] mb-2">Why Join Money Circles?</h3>
-                  <ul className="space-y-2 text-sm text-gray-700">
-                    <li className="flex items-start space-x-2">
-                      <CheckCircle className="h-4 w-4 text-[#2A6F68] mt-0.5 flex-shrink-0" />
-                      <span>Stay accountable with friends and family</span>
-                    </li>
-                    <li className="flex items-start space-x-2">
-                      <CheckCircle className="h-4 w-4 text-[#2A6F68] mt-0.5 flex-shrink-0" />
-                      <span>Share progress on common financial goals</span>
-                    </li>
-                    <li className="flex items-start space-x-2">
-                      <CheckCircle className="h-4 w-4 text-[#2A6F68] mt-0.5 flex-shrink-0" />
-                      <span>Celebrate wins together and stay motivated</span>
-                    </li>
-                    <li className="flex items-start space-x-2">
-                      <CheckCircle className="h-4 w-4 text-[#2A6F68] mt-0.5 flex-shrink-0" />
-                      <span>Learn from others' financial strategies</span>
-                    </li>
-                  </ul>
+                <div className="flex-1">
+                  <textarea
+                    value={newPost}
+                    onChange={(e) => setNewPost(e.target.value)}
+                    placeholder="Share your financial wins, tips, or ask for advice..."
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all text-sm min-h-[100px]"
+                  />
+                  <div className="flex items-center justify-between mt-3">
+                    <div className="flex items-center space-x-2">
+                      <button type="button" className="p-2 text-gray-500 hover:text-[#2A6F68] hover:bg-[#2A6F68]/10 rounded-full transition-colors">
+                        <Image className="h-5 w-5" />
+                      </button>
+                      <button type="button" className="p-2 text-gray-500 hover:text-[#2A6F68] hover:bg-[#2A6F68]/10 rounded-full transition-colors">
+                        <Award className="h-5 w-5" />
+                      </button>
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      type="submit"
+                      disabled={!newPost.trim()}
+                      className="flex items-center space-x-2 bg-[#2A6F68] text-white px-4 py-2 rounded-lg hover:bg-[#235A54] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <Send className="h-4 w-4" />
+                      <span>Post</span>
+                    </motion.button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </motion.div>
-        )}
+            </form>
+          </div>
 
-        {/* Weekly Quests */}
-        {activeTab === 'quests' && (
-          <motion.div
-            key="quests"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-6"
-          >
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-[#333333]">Weekly Quests</h2>
-              <div className="bg-[#2A6F68]/10 text-[#2A6F68] px-3 py-1 rounded-lg text-sm font-medium flex items-center space-x-2">
-                <Calendar className="h-4 w-4" />
-                <span>Resets in 2 days</span>
-              </div>
-            </div>
+          {/* Feed Posts */}
+          <div className="space-y-4">
+            {communityPosts.map((post) => (
+              <motion.div
+                key={post.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-xl p-6 shadow-sm border border-gray-200"
+              >
+                <div className="flex items-start space-x-3 mb-3">
+                  <img 
+                    src={post.userAvatar} 
+                    alt={post.userName} 
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{post.userName}</h3>
+                        <p className="text-xs text-gray-500">{formatTimeAgo(post.timestamp)}</p>
+                      </div>
+                      <button className="text-gray-400 hover:text-gray-600">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {weeklyQuests.map((quest) => (
-                <motion.div
-                  key={quest.id}
-                  whileHover={{ y: -5 }}
-                  className={`bg-white rounded-xl p-5 shadow-sm border transition-all ${
-                    quest.completed 
-                      ? 'border-green-200 bg-green-50' 
-                      : 'border-gray-200 hover:shadow-md'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        quest.completed 
-                          ? 'bg-green-100' 
-                          : 'bg-[#2A6F68]/10'
-                      }`}>
-                        {quest.completed ? (
-                          <CheckCircle className="h-5 w-5 text-green-600" />
-                        ) : (
-                          <Target className="h-5 w-5 text-[#2A6F68]" />
-                        )}
+                {post.achievement && (
+                  <div className="mb-3 bg-gradient-to-r from-[#2A6F68]/10 to-[#B76E79]/10 rounded-lg p-3 border border-[#2A6F68]/20">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-gradient-to-br from-[#2A6F68] to-[#B76E79] rounded-full flex items-center justify-center">
+                        <post.achievement.icon className="h-4 w-4 text-white" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-[#333333]">{quest.title}</h3>
-                        <p className="text-xs text-gray-500">
-                          {quest.completed 
-                            ? 'Completed' 
-                            : `${quest.daysLeft} day${quest.daysLeft !== 1 ? 's' : ''} left`
-                          }
-                        </p>
+                        <p className="text-xs font-medium text-[#2A6F68]">Achievement Unlocked</p>
+                        <p className="text-sm font-semibold">{post.achievement.title}</p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-1 bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs font-medium">
-                      <Zap className="h-3 w-3" />
-                      <span>+{quest.xpReward} XP</span>
-                    </div>
                   </div>
-                  
-                  <p className="text-sm text-gray-600 mb-3">{quest.description}</p>
-                  
-                  <div className="mb-3">
-                    <div className="flex justify-between text-xs text-gray-500 mb-1">
-                      <span>Progress</span>
-                      <span>{quest.progress}/{quest.total}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full ${
-                          quest.completed 
-                            ? 'bg-green-500' 
-                            : 'bg-[#2A6F68]'
-                        }`}
-                        style={{ width: `${(quest.progress / quest.total) * 100}%` }}
-                      ></div>
-                    </div>
+                )}
+
+                <p className="text-gray-700 mb-3">{post.content}</p>
+
+                {post.image && (
+                  <div className="mb-3 rounded-lg overflow-hidden">
+                    <img 
+                      src={post.image} 
+                      alt="Post attachment" 
+                      className="w-full h-auto object-cover"
+                    />
                   </div>
-                  
-                  {quest.completed ? (
-                    <div className="flex items-center justify-center space-x-2 bg-green-100 text-green-700 p-2 rounded-lg">
-                      <CheckCircle className="h-4 w-4" />
-                      <span className="text-sm font-medium">Quest Completed!</span>
-                    </div>
-                  ) : (
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleQuestProgress(quest.id)}
-                      className="w-full bg-[#2A6F68] text-white py-2 rounded-lg hover:bg-[#235A54] transition-colors text-sm font-medium"
+                )}
+
+                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                  <div className="flex items-center space-x-6">
+                    <button 
+                      onClick={() => handleLikePost(post.id)}
+                      className={`flex items-center space-x-1 ${post.liked ? 'text-[#B76E79]' : 'text-gray-500'} hover:text-[#B76E79]`}
                     >
-                      Log Progress
-                    </motion.button>
-                  )}
-                </motion.div>
-              ))}
-            </div>
-
-            <div className="bg-[#B76E79]/5 rounded-xl p-5 border border-[#B76E79]/20">
-              <div className="flex items-start space-x-3">
-                <div className="w-10 h-10 bg-[#B76E79]/20 rounded-lg flex items-center justify-center mt-1">
-                  <Target className="h-5 w-5 text-[#B76E79]" />
+                      <Heart className={`h-4 w-4 ${post.liked ? 'fill-[#B76E79]' : ''}`} />
+                      <span className="text-xs">{post.likes}</span>
+                    </button>
+                    <button className="flex items-center space-x-1 text-gray-500 hover:text-[#2A6F68]">
+                      <MessageCircle className="h-4 w-4" />
+                      <span className="text-xs">{post.comments}</span>
+                    </button>
+                    <button className="flex items-center space-x-1 text-gray-500 hover:text-[#2A6F68]">
+                      <Repeat className="h-4 w-4" />
+                      <span className="text-xs">{post.shares}</span>
+                    </button>
+                  </div>
+                  <button className="text-gray-500 hover:text-[#2A6F68]">
+                    <Share2 className="h-4 w-4" />
+                  </button>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-[#B76E79] mb-2">Quest Benefits</h3>
-                  <ul className="space-y-2 text-sm text-gray-700">
-                    <li className="flex items-start space-x-2">
-                      <CheckCircle className="h-4 w-4 text-[#B76E79] mt-0.5 flex-shrink-0" />
-                      <span>Build consistent financial habits through weekly challenges</span>
-                    </li>
-                    <li className="flex items-start space-x-2">
-                      <CheckCircle className="h-4 w-4 text-[#B76E79] mt-0.5 flex-shrink-0" />
-                      <span>Earn XP and badges to showcase your financial discipline</span>
-                    </li>
-                    <li className="flex items-start space-x-2">
-                      <CheckCircle className="h-4 w-4 text-[#B76E79] mt-0.5 flex-shrink-0" />
-                      <span>Track your progress with visual indicators</span>
-                    </li>
-                    <li className="flex items-start space-x-2">
-                      <CheckCircle className="h-4 w-4 text-[#B76E79] mt-0.5 flex-shrink-0" />
-                      <span>Compete with friends to stay motivated</span>
-                    </li>
-                  </ul>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Money Circles */}
+      {activeTab === 'circles' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search circles..."
+                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all text-sm"
+              />
+            </div>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowCreateCircleModal(true)}
+              className="flex items-center space-x-2 bg-[#2A6F68] text-white px-4 py-2 rounded-lg hover:bg-[#235A54] transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Create Circle</span>
+            </motion.button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredCircles.map((circle) => (
+              <motion.div
+                key={circle.id}
+                whileHover={{ y: -5 }}
+                className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h3 className="font-semibold text-gray-900">{circle.name}</h3>
+                      {circle.isPrivate && (
+                        <span className="p-1 bg-gray-100 rounded-full">
+                          <Lock className="h-3 w-3 text-gray-500" />
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">{circle.description}</p>
+                  </div>
+                  <div className="bg-[#2A6F68]/10 text-[#2A6F68] px-2 py-1 rounded-full text-xs font-medium">
+                    {circle.members} members
+                  </div>
                 </div>
+
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-gray-700">
+                      ${circle.currentAmount.toLocaleString()}
+                    </span>
+                    <div className="flex items-center space-x-1">
+                      <span className="text-sm text-gray-600">of ${circle.goalAmount.toLocaleString()}</span>
+                      <span className="text-[#2A6F68] font-medium text-sm">
+                        ({circle.progress}%)
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="h-2 rounded-full bg-[#2A6F68]"
+                      style={{ width: `${circle.progress}%` }}
+                    />
+                  </div>
+                </div>
+
+                {circle.isJoined ? (
+                  <button className="w-full flex items-center justify-center space-x-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
+                    <Check className="h-4 w-4" />
+                    <span>Joined</span>
+                  </button>
+                ) : (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleJoinCircle(circle.id)}
+                    className="w-full flex items-center justify-center space-x-2 bg-[#2A6F68] text-white px-4 py-2 rounded-lg hover:bg-[#235A54] transition-colors"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    <span>Join Circle</span>
+                  </motion.button>
+                )}
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Weekly Quests */}
+      {activeTab === 'quests' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {quests.map((quest) => (
+              <motion.div
+                key={quest.id}
+                whileHover={{ y: -5 }}
+                className={`bg-white rounded-xl p-6 shadow-sm border ${
+                  quest.isCompleted ? 'border-green-200 bg-green-50' : 'border-gray-200'
+                } hover:shadow-md transition-all`}
+              >
+                <div className="flex items-start space-x-4">
+                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                    quest.isCompleted ? 'bg-green-100' : 'bg-[#2A6F68]/10'
+                  }`}>
+                    <quest.icon className={`h-6 w-6 ${
+                      quest.isCompleted ? 'text-green-600' : 'text-[#2A6F68]'
+                    }`} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-gray-900">{quest.title}</h3>
+                      <div className="flex items-center space-x-1 text-yellow-500">
+                        <Zap className="h-4 w-4" />
+                        <span className="text-xs font-medium">+{quest.xpReward} XP</span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">{quest.description}</p>
+                    
+                    <div className="mt-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center space-x-2">
+                          <Clock className="h-3 w-3 text-gray-500" />
+                          <span className="text-xs text-gray-500">
+                            {quest.isCompleted ? 'Completed' : `${quest.daysLeft} days left`}
+                          </span>
+                        </div>
+                        <span className="text-xs font-medium text-[#2A6F68]">
+                          {quest.progress}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full ${
+                            quest.isCompleted ? 'bg-green-500' : 'bg-[#2A6F68]'
+                          }`}
+                          style={{ width: `${quest.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4">
+                      {quest.isCompleted ? (
+                        <div className="flex items-center justify-center space-x-2 bg-green-100 text-green-700 px-4 py-2 rounded-lg">
+                          <CheckCircle className="h-4 w-4" />
+                          <span>Completed</span>
+                        </div>
+                      ) : (
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleQuestComplete(quest.id)}
+                          className="w-full flex items-center justify-center space-x-2 bg-[#2A6F68] text-white px-4 py-2 rounded-lg hover:bg-[#235A54] transition-colors"
+                        >
+                          <Target className="h-4 w-4" />
+                          <span>Complete Quest</span>
+                        </motion.button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Leaderboard */}
+      {activeTab === 'leaderboard' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900">Top Performers</h3>
+              <div className="flex items-center space-x-2">
+                <button className="px-3 py-1 bg-[#2A6F68] text-white rounded-lg text-sm">XP</button>
+                <button className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm">Savings Rate</button>
+                <button className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm">Streak</button>
               </div>
             </div>
-          </motion.div>
-        )}
-
-        {/* Leaderboard */}
-        {activeTab === 'leaderboard' && (
-          <motion.div
-            key="leaderboard"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-6"
-          >
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-[#333333]">Financial Warriors Leaderboard</h2>
-              <div className="flex items-center space-x-2 bg-[#2A6F68]/10 text-[#2A6F68] px-3 py-1 rounded-lg text-sm">
-                <Trophy className="h-4 w-4" />
-                <span>Weekly Ranking</span>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="grid grid-cols-12 bg-gray-50 p-4 border-b border-gray-200 text-sm font-medium text-gray-500">
-                <div className="col-span-1 text-center">Rank</div>
-                <div className="col-span-5">User</div>
-                <div className="col-span-2 text-center">XP</div>
-                <div className="col-span-2 text-center">Savings Rate</div>
-                <div className="col-span-2 text-center">Streak</div>
-              </div>
-              
+            
+            <div className="divide-y divide-gray-100">
               {leaderboardUsers.map((user, index) => (
                 <div 
                   key={user.id}
-                  className={`grid grid-cols-12 p-4 ${
-                    index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                  } ${
-                    user.name === getDisplayName() ? 'bg-[#2A6F68]/5 border-l-4 border-[#2A6F68]' : ''
+                  className={`p-4 flex items-center space-x-4 ${
+                    user.isCurrentUser ? 'bg-[#2A6F68]/5' : ''
                   }`}
                 >
-                  <div className="col-span-1 flex justify-center items-center">
-                    {user.rank === 1 ? (
-                      <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                        <Trophy className="h-4 w-4 text-yellow-600" />
-                      </div>
-                    ) : user.rank === 2 ? (
-                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                        <Trophy className="h-4 w-4 text-gray-500" />
-                      </div>
-                    ) : user.rank === 3 ? (
-                      <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
-                        <Trophy className="h-4 w-4 text-amber-600" />
-                      </div>
-                    ) : (
-                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-700 font-medium">
-                        {user.rank}
-                      </div>
-                    )}
+                  <div className="w-8 text-center font-bold text-gray-500">
+                    {index + 1}
                   </div>
-                  
-                  <div className="col-span-5 flex items-center space-x-3">
-                    <img 
-                      src={user.avatar} 
-                      alt={user.name} 
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                    <div>
-                      <div className="font-medium text-gray-900 flex items-center">
-                        {user.name}
-                        {user.name === getDisplayName() && (
-                          <span className="ml-2 text-xs bg-[#2A6F68]/10 text-[#2A6F68] px-2 py-0.5 rounded">
-                            You
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-gray-500 flex items-center space-x-1">
-                        <Award className="h-3 w-3" />
-                        <span>{user.badges} badges</span>
-                      </div>
+                  <img 
+                    src={user.avatar} 
+                    alt={user.name} 
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2">
+                      <h4 className="font-medium text-gray-900">{user.name}</h4>
+                      {user.isCurrentUser && (
+                        <span className="px-2 py-0.5 bg-[#2A6F68]/10 text-[#2A6F68] rounded-full text-xs">
+                          You
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-4 text-xs text-gray-500 mt-1">
+                      <span>{user.savingsRate}% savings rate</span>
+                      <span>{user.streakDays} day streak</span>
                     </div>
                   </div>
-                  
-                  <div className="col-span-2 flex justify-center items-center">
-                    <div className="flex items-center space-x-1 bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-medium">
-                      <Zap className="h-3 w-3" />
-                      <span>{user.xp.toLocaleString()}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="col-span-2 flex justify-center items-center">
-                    <div className="flex items-center space-x-1 bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
-                      <TrendingUp className="h-3 w-3" />
-                      <span>{user.savingsRate}%</span>
-                    </div>
-                  </div>
-                  
-                  <div className="col-span-2 flex justify-center items-center">
-                    <div className="flex items-center space-x-1 bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs font-medium">
-                      <Flame className="h-3 w-3" />
-                      <span>{user.streak} days</span>
-                    </div>
+                  <div className="flex items-center space-x-2 bg-[#2A6F68]/10 text-[#2A6F68] px-3 py-1 rounded-full">
+                    <Trophy className="h-4 w-4" />
+                    <span className="font-bold">{user.xp} XP</span>
                   </div>
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-[#333333]">Top Savers</h3>
-                  <ArrowRight className="h-4 w-4 text-gray-400" />
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <img 
-                        src="https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150" 
-                        alt="Jessica R." 
-                        className="w-8 h-8 rounded-full object-cover"
-                      />
-                      <span className="text-sm">Jessica R.</span>
-                    </div>
-                    <div className="text-sm font-medium text-green-600">42%</div>
+      {/* Badges */}
+      {activeTab === 'badges' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {badges.map((badge) => (
+              <motion.div
+                key={badge.id}
+                whileHover={{ y: -5 }}
+                className={`bg-white rounded-xl p-6 shadow-sm border ${
+                  badge.isEarned ? 'border-[#2A6F68]' : 'border-gray-200'
+                } hover:shadow-md transition-all text-center`}
+              >
+                <div className="mb-4">
+                  <div className={`w-16 h-16 mx-auto rounded-full bg-gradient-to-br ${getRarityColor(badge.rarity)} flex items-center justify-center`}>
+                    <badge.icon className="h-8 w-8 text-white" />
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <img 
-                        src="https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150" 
-                        alt="Michael T." 
-                        className="w-8 h-8 rounded-full object-cover"
-                      />
-                      <span className="text-sm">Michael T.</span>
-                    </div>
-                    <div className="text-sm font-medium text-green-600">38%</div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <img 
-                        src="https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150" 
-                        alt="David K." 
-                        className="w-8 h-8 rounded-full object-cover"
-                      />
-                      <span className="text-sm">David K.</span>
-                    </div>
-                    <div className="text-sm font-medium text-green-600">35%</div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-[#333333]">Longest Streaks</h3>
-                  <ArrowRight className="h-4 w-4 text-gray-400" />
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <img 
-                        src="https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150" 
-                        alt="Jessica R." 
-                        className="w-8 h-8 rounded-full object-cover"
-                      />
-                      <span className="text-sm">Jessica R.</span>
-                    </div>
-                    <div className="flex items-center space-x-1 text-sm font-medium text-orange-600">
-                      <Flame className="h-3 w-3" />
-                      <span>45 days</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <img 
-                        src="https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150" 
-                        alt="Michael T." 
-                        className="w-8 h-8 rounded-full object-cover"
-                      />
-                      <span className="text-sm">Michael T.</span>
-                    </div>
-                    <div className="flex items-center space-x-1 text-sm font-medium text-orange-600">
-                      <Flame className="h-3 w-3" />
-                      <span>30 days</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <img 
-                        src="https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150" 
-                        alt="Emma S." 
-                        className="w-8 h-8 rounded-full object-cover"
-                      />
-                      <span className="text-sm">Emma S.</span>
-                    </div>
-                    <div className="flex items-center space-x-1 text-sm font-medium text-orange-600">
-                      <Flame className="h-3 w-3" />
-                      <span>21 days</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-[#333333]">Most Badges</h3>
-                  <ArrowRight className="h-4 w-4 text-gray-400" />
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <img 
-                        src="https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150" 
-                        alt="Jessica R." 
-                        className="w-8 h-8 rounded-full object-cover"
-                      />
-                      <span className="text-sm">Jessica R.</span>
-                    </div>
-                    <div className="flex items-center space-x-1 text-sm font-medium text-purple-600">
-                      <Award className="h-3 w-3" />
-                      <span>8 badges</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <img 
-                        src="https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150" 
-                        alt="Michael T." 
-                        className="w-8 h-8 rounded-full object-cover"
-                      />
-                      <span className="text-sm">Michael T.</span>
-                    </div>
-                    <div className="flex items-center space-x-1 text-sm font-medium text-purple-600">
-                      <Award className="h-3 w-3" />
-                      <span>7 badges</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <img 
-                        src="https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150" 
-                        alt="Emma S." 
-                        className="w-8 h-8 rounded-full object-cover"
-                      />
-                      <span className="text-sm">Emma S.</span>
-                    </div>
-                    <div className="flex items-center space-x-1 text-sm font-medium text-purple-600">
-                      <Award className="h-3 w-3" />
-                      <span>6 badges</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Badges */}
-        {activeTab === 'badges' && (
-          <motion.div
-            key="badges"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-6"
-          >
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-[#333333]">Achievement Badges</h2>
-              <div className="flex items-center space-x-3">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search badges..."
-                    className="pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all w-48 md:w-64"
-                  />
-                </div>
-                <div className="relative">
-                  <select
-                    value={filterType}
-                    onChange={(e) => setFilterType(e.target.value)}
-                    className="pl-3 pr-8 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all appearance-none"
-                  >
-                    <option value="all">All Badges</option>
-                    <option value="earned">Earned</option>
-                    <option value="unearned">Unearned</option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {filteredBadges.map((badge) => (
-                <motion.div
-                  key={badge.id}
-                  whileHover={{ y: -5 }}
-                  className={`bg-white rounded-xl p-5 shadow-sm border transition-all ${
-                    badge.earned 
-                      ? 'border-[#2A6F68] bg-[#2A6F68]/5' 
-                      : 'border-gray-200 opacity-70'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                      badge.earned 
-                        ? badge.rarity === 'legendary' ? 'bg-gradient-to-br from-purple-400 to-pink-500' :
-                          badge.rarity === 'epic' ? 'bg-gradient-to-br from-indigo-400 to-purple-500' :
-                          badge.rarity === 'rare' ? 'bg-gradient-to-br from-blue-400 to-indigo-500' :
-                          badge.rarity === 'uncommon' ? 'bg-gradient-to-br from-green-400 to-blue-500' :
-                          'bg-gradient-to-br from-gray-400 to-gray-600'
-                        : 'bg-gray-200'
-                    }`}>
-                      <div className="text-white">
-                        {badge.icon}
-                      </div>
-                    </div>
-                    {badge.earned && (
-                      <div className="flex items-center space-x-1 bg-[#2A6F68] text-white px-2 py-0.5 rounded text-xs">
-                        <CheckCircle className="h-3 w-3" />
-                        <span>Earned</span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <h3 className="font-semibold text-[#333333] mb-1">{badge.name}</h3>
-                  <p className="text-xs text-gray-600 mb-3">{badge.description}</p>
-                  
-                  <div className="flex justify-between items-center">
-                    <div className={`text-xs px-2 py-0.5 rounded ${
-                      badge.rarity === 'legendary' ? 'bg-purple-100 text-purple-800' :
-                      badge.rarity === 'epic' ? 'bg-indigo-100 text-indigo-800' :
+                  <div className="mt-2">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      badge.rarity === 'legendary' ? 'bg-yellow-100 text-yellow-800' :
+                      badge.rarity === 'epic' ? 'bg-purple-100 text-purple-800' :
                       badge.rarity === 'rare' ? 'bg-blue-100 text-blue-800' :
                       badge.rarity === 'uncommon' ? 'bg-green-100 text-green-800' :
                       'bg-gray-100 text-gray-800'
                     }`}>
                       {badge.rarity.charAt(0).toUpperCase() + badge.rarity.slice(1)}
-                    </div>
-                    <div className="flex items-center space-x-1 text-xs text-yellow-600">
-                      <Zap className="h-3 w-3" />
-                      <span>+{badge.xpAwarded} XP</span>
-                    </div>
-                  </div>
-                  
-                  {badge.earned && badge.date && (
-                    <div className="mt-3 pt-3 border-t border-[#2A6F68]/20 text-xs text-gray-500 flex items-center space-x-1">
-                      <Calendar className="h-3 w-3" />
-                      <span>Earned on {new Date(badge.date).toLocaleDateString()}</span>
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </div>
-
-            <div className="bg-gradient-to-r from-[#2A6F68]/10 to-[#B76E79]/10 rounded-xl p-5 border border-[#2A6F68]/20">
-              <div className="flex items-start space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-[#2A6F68] to-[#B76E79] rounded-lg flex items-center justify-center mt-1">
-                  <Award className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-[#333333] mb-2">Badge Rarity Guide</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full"></div>
-                        <span className="text-sm text-gray-700">Legendary: Exceptional achievements</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-full"></div>
-                        <span className="text-sm text-gray-700">Epic: Difficult milestones</span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full"></div>
-                        <span className="text-sm text-gray-700">Rare: Significant accomplishments</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 bg-gradient-to-br from-green-400 to-blue-500 rounded-full"></div>
-                        <span className="text-sm text-gray-700">Uncommon: Notable progress</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full"></div>
-                        <span className="text-sm text-gray-700">Common: Everyday achievements</span>
-                      </div>
-                    </div>
+                    </span>
                   </div>
                 </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
+                
+                <h3 className="font-semibold text-gray-900 mb-1">{badge.name}</h3>
+                <p className="text-xs text-gray-600 mb-3">{badge.description}</p>
+                
+                {badge.isEarned ? (
+                  <div className="flex items-center justify-center space-x-2 text-[#2A6F68] text-sm">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>Earned {badge.earnedDate?.toLocaleDateString()}</span>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="h-2 rounded-full bg-[#2A6F68]"
+                        style={{ width: `${badge.progress || 0}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-gray-600">{badge.progress || 0}% complete</span>
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
 
-        {/* Collaboration */}
-        {activeTab === 'collaboration' && (
-          <motion.div
-            key="collaboration"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-6"
-          >
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-[#333333]">Multi-User Collaboration</h2>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowInviteModal(true)}
-                className="flex items-center space-x-2 bg-[#2A6F68] text-white px-3 py-2 rounded-lg hover:bg-[#235A54] transition-colors"
-              >
-                <UserPlus className="h-4 w-4" />
-                <span>Invite Collaborator</span>
-              </motion.button>
-            </div>
+      {/* Collaboration */}
+      {activeTab === 'collaboration' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-gray-900">Manage Collaborators</h3>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowInviteModal(true)}
+              className="flex items-center space-x-2 bg-[#2A6F68] text-white px-4 py-2 rounded-lg hover:bg-[#235A54] transition-colors"
+            >
+              <UserPlus className="h-4 w-4" />
+              <span>Invite Collaborator</span>
+            </motion.button>
+          </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="grid grid-cols-12 bg-gray-50 p-4 border-b border-gray-200 text-sm font-medium text-gray-500">
-                <div className="col-span-5">Collaborator</div>
-                <div className="col-span-3">Access Level</div>
-                <div className="col-span-2 text-center">Added</div>
-                <div className="col-span-2 text-center">Actions</div>
-              </div>
-              
-              {collaborators.map((collaborator, index) => (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-4 border-b border-gray-200">
+              <h4 className="font-medium text-gray-900">Active Collaborators</h4>
+            </div>
+            
+            <div className="divide-y divide-gray-100">
+              {collaborators.map((collaborator) => (
                 <div 
                   key={collaborator.id}
-                  className={`grid grid-cols-12 p-4 ${
-                    index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                  }`}
+                  className="p-4 flex items-center space-x-4"
                 >
-                  <div className="col-span-5 flex items-center space-x-3">
-                    <img 
-                      src={collaborator.avatar} 
-                      alt={collaborator.name} 
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                    <div>
-                      <div className="font-medium text-gray-900">{collaborator.name}</div>
-                      <div className="text-xs text-gray-500">{collaborator.email}</div>
-                    </div>
-                  </div>
-                  
-                  <div className="col-span-3 flex items-center">
-                    <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${
-                      collaborator.accessLevel === 'full' 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {collaborator.accessLevel === 'full' ? (
-                        <ShieldCheck className="h-3 w-3" />
-                      ) : (
-                        <Lock className="h-3 w-3" />
+                  <img 
+                    src={collaborator.avatar} 
+                    alt={collaborator.name} 
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2">
+                      <h4 className="font-medium text-gray-900">{collaborator.name}</h4>
+                      {collaborator.status === 'pending' && (
+                        <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full text-xs">
+                          Pending
+                        </span>
                       )}
-                      <span>
-                        {collaborator.accessLevel === 'full' ? 'Full Access' : 'Limited Access'}
-                      </span>
                     </div>
+                    <p className="text-sm text-gray-600">{collaborator.email}</p>
                   </div>
-                  
-                  <div className="col-span-2 flex justify-center items-center text-sm text-gray-500">
-                    {new Date(collaborator.dateAdded).toLocaleDateString()}
-                  </div>
-                  
-                  <div className="col-span-2 flex justify-center items-center space-x-2">
-                    <button className="p-1 bg-gray-100 rounded hover:bg-gray-200 transition-colors">
-                      <Settings className="h-4 w-4 text-gray-600" />
-                    </button>
-                    <button className="p-1 bg-red-100 rounded hover:bg-red-200 transition-colors">
-                      <X className="h-4 w-4 text-red-600" />
+                  <div className="flex items-center space-x-2">
+                    <select
+                      value={collaborator.accessLevel}
+                      onChange={(e) => handleUpdateCollaboratorAccess(
+                        collaborator.id, 
+                        e.target.value as 'full' | 'limited' | 'view'
+                      )}
+                      className={`px-3 py-1 rounded-lg text-xs font-medium ${getAccessLevelColor(collaborator.accessLevel)}`}
+                    >
+                      <option value="full">Full Access</option>
+                      <option value="limited">Limited Access</option>
+                      <option value="view">View Only</option>
+                    </select>
+                    <button
+                      onClick={() => handleRemoveCollaborator(collaborator.id)}
+                      className="p-1 text-gray-400 hover:text-red-500 rounded-full hover:bg-red-50 transition-colors"
+                    >
+                      <X className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
               ))}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="w-10 h-10 bg-[#2A6F68]/10 rounded-lg flex items-center justify-center">
-                    <UserCheck className="h-5 w-5 text-[#2A6F68]" />
-                  </div>
-                  <h3 className="font-semibold text-[#333333]">Access Levels</h3>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="p-3 bg-green-50 rounded-lg border border-green-100">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <ShieldCheck className="h-4 w-4 text-green-600" />
-                      <span className="font-medium text-green-800">Full Access</span>
-                    </div>
-                    <p className="text-sm text-green-700">
-                      Can view all financial data, edit goals, and manage transactions. Ideal for spouses or financial advisors.
-                    </p>
-                  </div>
-                  
-                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <Lock className="h-4 w-4 text-blue-600" />
-                      <span className="font-medium text-blue-800">Limited Access</span>
-                    </div>
-                    <p className="text-sm text-blue-700">
-                      Can view specific goals and limited financial data. Cannot edit or make changes. Good for accountability partners.
-                    </p>
-                  </div>
-                  
-                  <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <Users className="h-4 w-4 text-purple-600" />
-                      <span className="font-medium text-purple-800">View Only</span>
-                    </div>
-                    <p className="text-sm text-purple-700">
-                      Can only view progress summaries and achievements. No access to sensitive financial details.
-                    </p>
-                  </div>
-                </div>
-              </div>
               
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="w-10 h-10 bg-[#B76E79]/10 rounded-lg flex items-center justify-center">
-                    <Bell className="h-5 w-5 text-[#B76E79]" />
+              {collaborators.length === 0 && (
+                <div className="p-8 text-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Users className="h-8 w-8 text-gray-400" />
                   </div>
-                  <h3 className="font-semibold text-[#333333]">Collaboration Settings</h3>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <div className="font-medium text-gray-800">Notification Preferences</div>
-                      <p className="text-xs text-gray-500">
-                        Control when you receive alerts about collaborator activity
-                      </p>
-                    </div>
-                    <button className="text-[#2A6F68] text-sm font-medium">
-                      Configure
-                    </button>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <div className="font-medium text-gray-800">Privacy Controls</div>
-                      <p className="text-xs text-gray-500">
-                        Manage what information is shared with collaborators
-                      </p>
-                    </div>
-                    <button className="text-[#2A6F68] text-sm font-medium">
-                      Configure
-                    </button>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <div className="font-medium text-gray-800">Activity Log</div>
-                      <p className="text-xs text-gray-500">
-                        View a history of all collaborator actions
-                      </p>
-                    </div>
-                    <button className="text-[#2A6F68] text-sm font-medium">
-                      View Log
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Invite Modal */}
-      <AnimatePresence>
-        {showInviteModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setShowInviteModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden"
-            >
-              <div className="bg-gradient-to-r from-[#2A6F68] to-[#B76E79] p-4 text-white">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-bold">Invite to Collaborate</h2>
-                  <button
-                    onClick={() => setShowInviteModal(false)}
-                    className="p-1 hover:bg-white/20 rounded transition-colors"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-              
-              <div className="p-6">
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <input
-                      type="email"
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
-                      placeholder="Enter email address"
-                      className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all"
-                    />
-                  </div>
-                </div>
-                
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Access Level
-                  </label>
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <input 
-                        type="radio" 
-                        id="full-access" 
-                        name="access-level" 
-                        className="h-4 w-4 text-[#2A6F68] focus:ring-[#2A6F68]" 
-                        defaultChecked 
-                      />
-                      <label htmlFor="full-access" className="text-sm text-gray-700">Full Access</label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input 
-                        type="radio" 
-                        id="limited-access" 
-                        name="access-level" 
-                        className="h-4 w-4 text-[#2A6F68] focus:ring-[#2A6F68]" 
-                      />
-                      <label htmlFor="limited-access" className="text-sm text-gray-700">Limited Access</label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input 
-                        type="radio" 
-                        id="view-only" 
-                        name="access-level" 
-                        className="h-4 w-4 text-[#2A6F68] focus:ring-[#2A6F68]" 
-                      />
-                      <label htmlFor="view-only" className="text-sm text-gray-700">View Only</label>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Personal Message (Optional)
-                  </label>
-                  <textarea
-                    placeholder="Add a personal message to your invitation..."
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all"
-                  ></textarea>
-                </div>
-                
-                <div className="flex space-x-3">
-                  <button
-                    onClick={() => setShowInviteModal(false)}
-                    className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                  >
-                    Cancel
-                  </button>
+                  <h4 className="font-medium text-gray-900 mb-2">No Collaborators Yet</h4>
+                  <p className="text-gray-600 mb-4">Invite family members or financial advisors to collaborate on your finances</p>
                   <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleInviteSubmit}
-                    disabled={!inviteEmail}
-                    className="flex-1 bg-[#2A6F68] text-white px-4 py-3 rounded-lg hover:bg-[#235A54] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowInviteModal(true)}
+                    className="inline-flex items-center space-x-2 bg-[#2A6F68] text-white px-4 py-2 rounded-lg hover:bg-[#235A54] transition-colors"
                   >
-                    Send Invitation
+                    <UserPlus className="h-4 w-4" />
+                    <span>Invite Collaborator</span>
                   </motion.button>
                 </div>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+            <h4 className="font-semibold text-gray-900 mb-4">Access Levels Explained</h4>
+            <div className="space-y-3">
+              <div className="flex items-start space-x-3">
+                <div className="p-2 bg-green-100 text-green-800 rounded-lg">
+                  <Settings className="h-5 w-5" />
+                </div>
+                <div>
+                  <h5 className="font-medium text-gray-900">Full Access</h5>
+                  <p className="text-sm text-gray-600">Can view, edit, and manage all financial data and settings</p>
+                </div>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <div className="flex items-start space-x-3">
+                <div className="p-2 bg-blue-100 text-blue-800 rounded-lg">
+                  <Edit className="h-5 w-5" />
+                </div>
+                <div>
+                  <h5 className="font-medium text-gray-900">Limited Access</h5>
+                  <p className="text-sm text-gray-600">Can view all data and edit specific areas you grant permission for</p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="p-2 bg-gray-100 text-gray-800 rounded-lg">
+                  <Eye className="h-5 w-5" />
+                </div>
+                <div>
+                  <h5 className="font-medium text-gray-900">View Only</h5>
+                  <p className="text-sm text-gray-600">Can only view financial data but cannot make any changes</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create Circle Modal */}
       <AnimatePresence>
@@ -1441,93 +1235,229 @@ const CommunityPage: React.FC<CommunityPageProps> = ({ user, onXPUpdate }) => {
               onClick={(e) => e.stopPropagation()}
               className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden"
             >
-              <div className="bg-gradient-to-r from-[#2A6F68] to-[#B76E79] p-4 text-white">
+              <div className="p-4 border-b border-gray-200">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-bold">Create Money Circle</h2>
+                  <h2 className="text-xl font-bold text-[#333333]">Create Money Circle</h2>
                   <button
                     onClick={() => setShowCreateCircleModal(false)}
-                    className="p-1 hover:bg-white/20 rounded transition-colors"
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                   >
-                    <X className="h-5 w-5" />
+                    <X className="h-5 w-5 text-gray-500" />
                   </button>
                 </div>
               </div>
-              
               <div className="p-6">
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Circle Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={newCircleData.name}
-                    onChange={(e) => setNewCircleData({...newCircleData, name: e.target.value})}
-                    placeholder="e.g., Family Budget Group"
-                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all"
-                    required
-                  />
-                </div>
-                
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Circle Type
-                  </label>
-                  <select
-                    value={newCircleData.type}
-                    onChange={(e) => setNewCircleData({...newCircleData, type: e.target.value})}
-                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all"
-                  >
-                    <option value="savings">Savings Group</option>
-                    <option value="investment">Investment Club</option>
-                    <option value="debt">Debt Payoff</option>
-                    <option value="family">Family Finance</option>
-                    <option value="friends">Friends Group</option>
-                  </select>
-                </div>
-                
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description
-                  </label>
-                  <textarea
-                    value={newCircleData.description}
-                    onChange={(e) => setNewCircleData({...newCircleData, description: e.target.value})}
-                    placeholder="What's the purpose of this circle?"
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all"
-                  ></textarea>
-                </div>
-                
-                <div className="mb-6">
-                  <div className="flex items-center space-x-2">
-                    <input 
-                      type="checkbox" 
-                      id="private-circle" 
-                      checked={newCircleData.isPrivate}
-                      onChange={(e) => setNewCircleData({...newCircleData, isPrivate: e.target.checked})}
-                      className="h-4 w-4 text-[#2A6F68] focus:ring-[#2A6F68] rounded" 
-                    />
-                    <label htmlFor="private-circle" className="text-sm text-gray-700">Make this circle private (invitation only)</label>
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  const name = formData.get('name') as string;
+                  const description = formData.get('description') as string;
+                  const isPrivate = formData.get('privacy') === 'private';
+                  const goalAmount = parseFloat(formData.get('goalAmount') as string);
+                  
+                  if (name && description && goalAmount) {
+                    handleCreateCircle(name, description, isPrivate, goalAmount);
+                  }
+                }}>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Circle Name *
+                      </label>
+                      <input
+                        type="text"
+                        name="name"
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all"
+                        placeholder="e.g., Family Savings Challenge"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Description *
+                      </label>
+                      <textarea
+                        name="description"
+                        required
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all"
+                        placeholder="What is this circle for?"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Goal Amount *
+                      </label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <input
+                          type="number"
+                          name="goalAmount"
+                          required
+                          min="1"
+                          step="0.01"
+                          className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all"
+                          placeholder="5000"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Privacy Setting
+                      </label>
+                      <div className="flex items-center space-x-4">
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            name="privacy"
+                            value="public"
+                            defaultChecked
+                            className="text-[#2A6F68] focus:ring-[#2A6F68]"
+                          />
+                          <span className="text-sm text-gray-700">Public</span>
+                        </label>
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            name="privacy"
+                            value="private"
+                            className="text-[#2A6F68] focus:ring-[#2A6F68]"
+                          />
+                          <span className="text-sm text-gray-700">Private</span>
+                        </label>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                
-                <div className="flex space-x-3">
+                  
+                  <div className="mt-6 flex space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateCircleModal(false)}
+                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      type="submit"
+                      className="flex-1 bg-[#2A6F68] text-white px-4 py-2 rounded-lg hover:bg-[#235A54] transition-colors"
+                    >
+                      Create Circle
+                    </motion.button>
+                  </div>
+                </form>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Invite Collaborator Modal */}
+      <AnimatePresence>
+        {showInviteModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowInviteModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden"
+            >
+              <div className="p-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-[#333333]">Invite Collaborator</h2>
                   <button
-                    onClick={() => setShowCreateCircleModal(false)}
-                    className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                    onClick={() => setShowInviteModal(false)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                   >
-                    Cancel
+                    <X className="h-5 w-5 text-gray-500" />
                   </button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleCreateCircle}
-                    disabled={!newCircleData.name}
-                    className="flex-1 bg-[#2A6F68] text-white px-4 py-3 rounded-lg hover:bg-[#235A54] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-                  >
-                    Create Circle
-                  </motion.button>
                 </div>
+              </div>
+              <div className="p-6">
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  const email = formData.get('email') as string;
+                  const accessLevel = formData.get('accessLevel') as 'full' | 'limited' | 'view';
+                  
+                  if (email && accessLevel) {
+                    handleInviteCollaborator(email, accessLevel);
+                  }
+                }}>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Email Address *
+                      </label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <input
+                          type="email"
+                          name="email"
+                          required
+                          className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all"
+                          placeholder="collaborator@example.com"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Access Level *
+                      </label>
+                      <select
+                        name="accessLevel"
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A6F68] focus:border-transparent transition-all"
+                      >
+                        <option value="full">Full Access</option>
+                        <option value="limited">Limited Access</option>
+                        <option value="view">View Only</option>
+                      </select>
+                      <p className="mt-1 text-xs text-gray-500">
+                        Full access allows the collaborator to view and edit all your financial data.
+                      </p>
+                    </div>
+                    
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <div className="flex items-start space-x-2">
+                        <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <p className="text-xs text-blue-700">
+                          Collaborators will receive an email invitation to join your financial dashboard. They'll need to create an account if they don't already have one.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6 flex space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowInviteModal(false)}
+                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      type="submit"
+                      className="flex-1 bg-[#2A6F68] text-white px-4 py-2 rounded-lg hover:bg-[#235A54] transition-colors"
+                    >
+                      Send Invitation
+                    </motion.button>
+                  </div>
+                </form>
               </div>
             </motion.div>
           </motion.div>
@@ -1536,76 +1466,5 @@ const CommunityPage: React.FC<CommunityPageProps> = ({ user, onXPUpdate }) => {
     </div>
   );
 };
-
-// Custom badge icons
-const PiggyBankIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"></path>
-    <path d="M2 9v1c0 1.1.9 2 2 2h1"></path>
-    <path d="M16 11a2 2 0 0 0-2-2"></path>
-  </svg>
-);
-
-const CalculatorIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="4" y="2" width="16" height="20" rx="2"></rect>
-    <line x1="8" x2="16" y1="6" y2="6"></line>
-    <line x1="16" x2="16" y1="14" y2="18"></line>
-    <path d="M16 10h.01"></path>
-    <path d="M12 10h.01"></path>
-    <path d="M8 10h.01"></path>
-    <path d="M12 14h.01"></path>
-    <path d="M8 14h.01"></path>
-    <path d="M12 18h.01"></path>
-    <path d="M8 18h.01"></path>
-  </svg>
-);
-
-const TrophyIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
-    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
-    <path d="M4 22h16"></path>
-    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
-    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
-    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
-  </svg>
-);
-
-const ChartIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 3v18h18"></path>
-    <path d="m19 9-5 5-4-4-3 3"></path>
-  </svg>
-);
-
-const TargetIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10"></circle>
-    <circle cx="12" cy="12" r="6"></circle>
-    <circle cx="12" cy="12" r="2"></circle>
-  </svg>
-);
-
-const BookIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
-  </svg>
-);
-
-const UsersIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-    <circle cx="9" cy="7" r="4"></circle>
-    <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-  </svg>
-);
-
-const FlameIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
-  </svg>
-);
 
 export default CommunityPage;
