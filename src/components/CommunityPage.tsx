@@ -30,7 +30,13 @@ import {
   Calendar,
   TrendingUp,
   PiggyBank,
-  DollarSign
+  DollarSign,
+  Shield,
+  Flame,
+  BookOpen,
+  CheckCircle,
+  Edit,
+  Info
 } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { useUserProfile } from '../hooks/useUserProfile';
