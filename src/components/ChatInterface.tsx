@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, User as UserIcon, Zap, TrendingUp, Target, PiggyBank, AlertTriangle, CheckCircle, Lightbulb, DollarSign, Calendar, Award, TrendingDown, Coffee, CreditCard, Banknote, Brain, MessageCircle } from 'lucide-react';
+import { Send, User as UserIcon, Zap, TrendingUp, Target, PiggyBank, AlertTriangle, CheckCircle, Lightbulb, DollarSign, Calendar, Award, TrendingDown, Coffee, CreditCard, Banknote, Brain, MessageCircle, BarChart3 } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { useChat } from '../hooks/useChat';
 import { useGoals } from '../hooks/useGoals';
