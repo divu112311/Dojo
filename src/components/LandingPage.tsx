@@ -26,6 +26,7 @@ import {
   MessageCircle
 } from 'lucide-react';
 import doughjoMascot from '../assets/doughjo-mascot.png';
+import boltImage from '../assets/bolt.png';
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -177,7 +178,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn }) => 
                   className="w-full h-full object-contain rounded-full"
                 />
               </motion.div>
-              <span className="text-2xl font-serif font-bold text-[#333333]">DoughJo</span>
+              <div className="flex items-center">
+                <img 
+                  src={boltImage} 
+                  alt="Bolt" 
+                  className="h-5 w-5 mr-1"
+                />
+                <span className="text-2xl font-serif font-bold text-[#333333]">DoughJo</span>
+              </div>
             </div>
 
             {/* Desktop Navigation */}
@@ -690,7 +698,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn }) => 
                     className="w-full h-full object-contain rounded-full"
                   />
                 </div>
-                <span className="text-2xl font-serif font-bold">DoughJo</span>
+                <div className="flex items-center">
+                  <img 
+                    src={boltImage} 
+                    alt="Bolt" 
+                    className="h-5 w-5 mr-1"
+                  />
+                  <span className="text-2xl font-serif font-bold">DoughJo</span>
+                </div>
               </div>
               <p className="text-gray-400">
                 Your AI Financial Sensei for mastering money management and building wealth.
