@@ -12,7 +12,7 @@ interface BankAccountManagerProps {
 
 const BankAccountManager: React.FC<BankAccountManagerProps> = ({ user }) => {
   const [showBalances, setShowBalances] = useState(true);
-  const { bankAccounts, loading, refreshAccounts, totalBalance, deleteBankAccount, syncAccount } = useBankAccounts(user);
+  const { bankAccounts, loading, error, refreshAccounts, totalBalance, deleteBankAccount, syncAccount } = useBankAccounts(user);
   const { 
     openPlaidLink, 
     connectWithCredentials,
@@ -135,6 +135,17 @@ const BankAccountManager: React.FC<BankAccountManagerProps> = ({ user }) => {
     openPlaidLink();
   };
 
+  const handleRefreshAccounts = async () => {
+    console.log('Refresh button clicked');
+    console.log('Current accounts before refresh:', bankAccounts);
+    console.log('Current total balance:', totalBalance);
+    
+    await refreshAccounts();
+    
+    console.log('Accounts after refresh:', bankAccounts);
+    console.log('New total balance:', totalBalance);
+  };
+
   return (
     <div className="space-y-6">
       {/* Plaid Credentials Modal */}
@@ -165,7 +176,7 @@ const BankAccountManager: React.FC<BankAccountManagerProps> = ({ user }) => {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={refreshAccounts}
+            onClick={handleRefreshAccounts}
             disabled={loading}
             className="flex items-center space-x-2 px-3 py-2 bg-[#2A6F68] text-white rounded-lg hover:bg-[#235A54] disabled:opacity-50 transition-colors"
           >
@@ -176,7 +187,7 @@ const BankAccountManager: React.FC<BankAccountManagerProps> = ({ user }) => {
       </div>
 
       {/* Error Display */}
-      {plaidError && (
+      {error && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -186,6 +197,26 @@ const BankAccountManager: React.FC<BankAccountManagerProps> = ({ user }) => {
             <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
             <div>
               <h4 className="font-medium text-red-900 mb-1">Connection Error</h4>
+              <p className="text-sm text-red-800">{error}</p>
+              <div className="mt-2 text-xs text-red-700">
+                <p>Please check your database connection or try again later.</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Plaid Error Display */}
+      {plaidError && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-red-50 border border-red-200 rounded-lg p-4"
+        >
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <h4 className="font-medium text-red-900 mb-1">Plaid Connection Error</h4>
               <p className="text-sm text-red-800">{plaidError}</p>
               <div className="mt-2 text-xs text-red-700">
                 <p>Debug info: Plaid script loaded: {plaidScriptLoaded ? 'Yes' : 'No'}</p>
@@ -196,8 +227,23 @@ const BankAccountManager: React.FC<BankAccountManagerProps> = ({ user }) => {
         </motion.div>
       )}
 
+      {/* Loading State */}
+      {loading && (
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 flex items-center justify-center">
+          <div className="text-center py-8">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              className="w-8 h-8 border-2 border-[#2A6F68] border-t-transparent rounded-full mx-auto mb-4"
+            />
+            <h3 className="text-lg font-semibold text-[#333333] mb-2">Loading Accounts</h3>
+            <p className="text-gray-600">Fetching your financial accounts...</p>
+          </div>
+        </div>
+      )}
+
       {/* Total Balance Card */}
-      {bankAccounts.length > 0 && (
+      {!loading && bankAccounts.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -268,7 +314,7 @@ const BankAccountManager: React.FC<BankAccountManagerProps> = ({ user }) => {
       </motion.div>
 
       {/* Connected Accounts */}
-      {bankAccounts.length > 0 && (
+      {!loading && bankAccounts.length > 0 && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-[#333333]">Connected Accounts</h3>
           
@@ -356,7 +402,7 @@ const BankAccountManager: React.FC<BankAccountManagerProps> = ({ user }) => {
       )}
 
       {/* Empty State */}
-      {bankAccounts.length === 0 && !loading && (
+      {!loading && bankAccounts.length === 0 && !error && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
