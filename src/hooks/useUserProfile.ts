@@ -76,11 +76,6 @@ export const useUserProfile = (user: User | null) => {
     if (!user) return;
 
     try {
-      console.log('=== FETCHING USER PROFILE DATA ===');
-      console.log('User ID:', user.id);
-      console.log('User email from auth:', user.email);
-      console.log('User metadata:', user.user_metadata);
-
       // Skip database operations if Supabase is not configured
       if (!isSupabaseConfigured) {
         console.log('Supabase not configured, using fallback profile data');
@@ -112,138 +107,98 @@ export const useUserProfile = (user: User | null) => {
         return;
       }
 
-      // Fetch user profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
+      // Fetch user profile, extended profile, and XP in parallel
+      const [profileResult, extendedProfileResult, xpResult] = await Promise.all([
+        supabase.from('users').select('*').eq('id', user.id).maybeSingle(),
+        supabase.from('user_profiles').select('*').eq('user_id', user.id).maybeSingle(),
+        supabase.from('xp').select('*').eq('user_id', user.id).maybeSingle()
+      ]);
 
-      console.log('Profile query result:', { profileData, profileError });
-
-      if (profileError) {
-        console.error('Profile fetch error:', profileError);
-      }
-
-      // If no profile exists, create one from auth metadata
-      if (!profileData && user.email) {
-        console.log('No profile found, creating from auth metadata...');
-        
+      // Process profile data
+      if (profileResult.error) {
+        console.error('Profile fetch error:', profileResult.error);
+      } else if (!profileResult.data && user.email) {
+        // If no profile exists, create one from auth metadata
         const firstName = user.user_metadata?.first_name || user.user_metadata?.full_name?.split(' ')[0] || 'User';
         const lastName = user.user_metadata?.last_name || user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '';
         
-        const { data: newProfile, error: createError } = await supabase
-          .from('users')
-          .insert({
+        try {
+          const { data: newProfile } = await supabase
+            .from('users')
+            .insert({
+              id: user.id,
+              email: user.email,
+              first_name: firstName,
+              last_name: lastName,
+              is_active: true,
+            })
+            .select()
+            .single();
+
+          setProfile(newProfile);
+        } catch (createError) {
+          console.error('Error creating profile:', createError);
+          // Set fallback profile
+          setProfile({
             id: user.id,
             email: user.email,
             first_name: firstName,
             last_name: lastName,
+            phone_number: null,
+            date_of_birth: null,
             is_active: true,
-          })
-          .select()
-          .single();
-
-        if (createError) {
-          console.error('Error creating profile:', createError);
-        } else {
-          console.log('Created new profile:', newProfile);
-          setProfile(newProfile);
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
         }
       } else {
-        setProfile(profileData);
+        setProfile(profileResult.data);
       }
 
-      // Fetch extended user profile
-      const { data: extendedProfileData, error: extendedProfileError } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (extendedProfileError) {
-        console.error('Extended profile fetch error:', extendedProfileError);
+      // Process extended profile data
+      if (extendedProfileResult.error) {
+        console.error('Extended profile fetch error:', extendedProfileResult.error);
       } else {
-        setExtendedProfile(extendedProfileData);
+        setExtendedProfile(extendedProfileResult.data);
       }
 
-      // Fetch user XP with better error handling
-      try {
-        const { data: xpData, error: xpError } = await supabase
-          .from('xp')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (xpError) {
-          console.error('XP fetch error:', xpError);
-          // If XP table doesn't exist or there's an error, create a default XP record
-          console.log('Attempting to create default XP record...');
-          
-          const { data: newXpData, error: createXpError } = await supabase
-            .from('xp')
-            .insert({
-              user_id: user.id,
-              points: 100,
-              badges: ['Welcome']
-            })
-            .select()
-            .single();
-
-          if (createXpError) {
-            console.error('Error creating XP record:', createXpError);
-            // Set a default XP object if we can't create one in the database
-            setXP({
-              id: 'default',
-              user_id: user.id,
-              points: 100,
-              badges: ['Welcome']
-            });
-          } else {
-            console.log('Created new XP record:', newXpData);
-            setXP(newXpData);
-          }
-        } else if (!xpData) {
-          // No XP record exists, create one
-          console.log('No XP record found, creating one...');
-          
-          const { data: newXpData, error: createXpError } = await supabase
-            .from('xp')
-            .insert({
-              user_id: user.id,
-              points: 100,
-              badges: ['Welcome']
-            })
-            .select()
-            .single();
-
-          if (createXpError) {
-            console.error('Error creating XP record:', createXpError);
-            // Set a default XP object if we can't create one in the database
-            setXP({
-              id: 'default',
-              user_id: user.id,
-              points: 100,
-              badges: ['Welcome']
-            });
-          } else {
-            console.log('Created new XP record:', newXpData);
-            setXP(newXpData);
-          }
-        } else {
-          setXP(xpData);
-        }
-      } catch (xpFetchError) {
-        console.error('XP fetch operation failed:', xpFetchError);
-        // Set a default XP object as fallback
+      // Process XP data
+      if (xpResult.error) {
+        console.error('XP fetch error:', xpResult.error);
+        // Set default XP
         setXP({
           id: 'default',
           user_id: user.id,
           points: 100,
           badges: ['Welcome']
         });
-      }
+      } else if (!xpResult.data) {
+        // Create new XP record
+        try {
+          const { data: newXpData } = await supabase
+            .from('xp')
+            .insert({
+              user_id: user.id,
+              points: 100,
+              badges: ['Welcome']
+            })
+            .select()
+            .single();
 
+          setXP(newXpData);
+        } catch (createXpError) {
+          console.error('Error creating XP record:', createXpError);
+          // Set default XP
+          setXP({
+            id: 'default',
+            user_id: user.id,
+            points: 100,
+            badges: ['Welcome']
+          });
+        }
+      } else {
+        setXP(xpResult.data);
+      }
     } catch (error) {
       console.error('Error fetching user data:', error);
       

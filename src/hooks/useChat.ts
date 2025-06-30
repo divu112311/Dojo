@@ -83,9 +83,6 @@ export const useChat = (user: User | null) => {
     if (!user || !isSupabaseConfigured) return;
 
     try {
-      console.log('=== FETCHING CHAT SESSIONS ===');
-      console.log('User ID:', user.id);
-
       const { data, error } = await supabase
         .from('chat_sessions')
         .select('*')
@@ -97,7 +94,6 @@ export const useChat = (user: User | null) => {
         return;
       }
 
-      console.log('Chat sessions fetched:', data?.length || 0, 'sessions');
       setSessions(data || []);
 
       // Set current session to the most recent active one, or create a new one
@@ -122,9 +118,6 @@ export const useChat = (user: User | null) => {
     if (!user || !isSupabaseConfigured) return;
 
     try {
-      console.log('=== FETCHING CHAT MESSAGES ===');
-      console.log('Session ID:', sessionId);
-
       // Try to fetch from new chat_messages table first
       const { data: newMessages, error: newMessagesError } = await supabase
         .from('chat_messages')
@@ -164,7 +157,6 @@ export const useChat = (user: User | null) => {
         return;
       }
 
-      console.log('Chat messages fetched:', oldMessages?.length || 0, 'messages');
       setMessages(oldMessages || []);
     } catch (error) {
       console.error('Error fetching chat messages:', error);
@@ -177,8 +169,6 @@ export const useChat = (user: User | null) => {
     if (!user) return;
 
     try {
-      console.log('=== CREATING NEW CHAT SESSION ===');
-      
       if (!isSupabaseConfigured) {
         console.log('Supabase not configured, using local session');
         const localSessionId = 'local-session-' + Date.now();
@@ -203,7 +193,6 @@ export const useChat = (user: User | null) => {
         return;
       }
 
-      console.log('New chat session created:', data.session_id);
       setSessions(prev => [data, ...prev]);
       setCurrentSessionId(data.session_id);
       setMessages([]);
@@ -216,11 +205,6 @@ export const useChat = (user: User | null) => {
 
   const sendMessage = async (message: string, onXPUpdate?: (points: number) => void) => {
     if (!user || !message.trim()) return;
-
-    console.log('=== SENDING MESSAGE ===');
-    console.log('Message:', message);
-    console.log('User ID:', user.id);
-    console.log('Session ID:', currentSessionId);
 
     setLoading(true);
 
@@ -277,7 +261,6 @@ export const useChat = (user: User | null) => {
       
       if (useNewMessageFormat && currentSessionId) {
         // Add user message to new chat_messages table
-        console.log('Adding user message to chat_messages table...');
         const { data: userMessage, error: userError } = await supabase
           .from('chat_messages')
           .insert({
@@ -294,8 +277,6 @@ export const useChat = (user: User | null) => {
           console.error('Error saving user message:', userError);
           throw userError;
         }
-
-        console.log('User message saved:', userMessage.message_id);
 
         // Update local state with converted format for compatibility
         const convertedUserMessage: ChatMessage = {
@@ -315,13 +296,6 @@ export const useChat = (user: User | null) => {
           .eq('session_id', currentSessionId);
 
         // Call AI API through Supabase Edge Function
-        console.log('Calling AI Edge Function...');
-        console.log('Request payload:', {
-          message: message.trim(),
-          userId: user.id,
-          sessionId: currentSessionId
-        });
-        
         const startTime = Date.now();
         const { data: aiResponseData, error: aiError } = await supabase.functions.invoke('chat-ai', {
           body: {
@@ -332,12 +306,6 @@ export const useChat = (user: User | null) => {
         });
         const responseTime = Date.now() - startTime;
 
-        console.log('AI Response received in', responseTime, 'ms:', {
-          hasData: !!aiResponseData,
-          hasError: !!aiError,
-          response: aiResponseData?.response?.substring(0, 100) + '...'
-        });
-
         if (aiError) {
           console.error('AI API Error:', aiError);
           throw aiError;
@@ -346,7 +314,6 @@ export const useChat = (user: User | null) => {
         const aiResponse = aiResponseData?.response || generateContextualResponse(message);
 
         // Add AI response to chat_messages table
-        console.log('Saving AI response to chat_messages table...');
         const { data: aiMessage, error: aiMessageError } = await supabase
           .from('chat_messages')
           .insert({
@@ -370,8 +337,6 @@ export const useChat = (user: User | null) => {
           throw aiMessageError;
         }
 
-        console.log('AI message saved:', aiMessage.message_id);
-
         // Update local state with converted format for compatibility
         const convertedAiMessage: ChatMessage = {
           id: aiMessage.message_id,
@@ -385,7 +350,6 @@ export const useChat = (user: User | null) => {
       } else {
         // Fallback to old chat_logs table
         // Add user message to database
-        console.log('Adding user message to chat_logs table...');
         const { data: userMessage, error: userError } = await supabase
           .from('chat_logs')
           .insert({
@@ -401,18 +365,10 @@ export const useChat = (user: User | null) => {
           throw userError;
         }
 
-        console.log('User message saved:', userMessage.id);
-
         // Update local state immediately
         setMessages(prev => [...prev, userMessage]);
 
         // Call AI API through Supabase Edge Function
-        console.log('Calling AI Edge Function...');
-        console.log('Request payload:', {
-          message: message.trim(),
-          userId: user.id
-        });
-        
         const startTime = Date.now();
         const { data: aiResponseData, error: aiError } = await supabase.functions.invoke('chat-ai', {
           body: {
@@ -422,12 +378,6 @@ export const useChat = (user: User | null) => {
         });
         const responseTime = Date.now() - startTime;
 
-        console.log('AI Response received in', responseTime, 'ms:', {
-          hasData: !!aiResponseData,
-          hasError: !!aiError,
-          response: aiResponseData?.response?.substring(0, 100) + '...'
-        });
-
         if (aiError) {
           console.error('AI API Error:', aiError);
           throw aiError;
@@ -436,7 +386,6 @@ export const useChat = (user: User | null) => {
         const aiResponse = aiResponseData?.response || generateContextualResponse(message);
 
         // Add AI response to database
-        console.log('Saving AI response to chat_logs table...');
         const { data: aiMessage, error: aiMessageError } = await supabase
           .from('chat_logs')
           .insert({
@@ -451,8 +400,6 @@ export const useChat = (user: User | null) => {
           console.error('Error saving AI message:', aiMessageError);
           throw aiMessageError;
         }
-
-        console.log('AI message saved:', aiMessage.id);
 
         // Update local state with AI response
         setMessages(prev => [...prev, aiMessage]);
@@ -594,8 +541,6 @@ export const useChat = (user: User | null) => {
           ],
           created_at: new Date().toISOString()
         });
-      
-      console.log('Financial insight generated for message:', message.substring(0, 30) + '...');
     } catch (error) {
       console.error('Error generating financial insight:', error);
     }

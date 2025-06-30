@@ -89,10 +89,9 @@ export const useBankAccounts = (user: User | null) => {
   const fetchBankAccounts = async () => {
     if (!user) return;
 
-    console.log('=== FETCHING BANK ACCOUNTS ===');
-    console.log('User ID:', user.id);
-
     setLoading(true);
+    setError(null);
+    
     try {
       const { data, error } = await supabase
         .from('bank_accounts')
@@ -102,18 +101,14 @@ export const useBankAccounts = (user: User | null) => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ Error fetching bank accounts:', error);
+        console.error('Error fetching bank accounts:', error);
         // Fall back to demo accounts on error
         setDemoAccounts();
         return;
       }
 
-      console.log('✅ Bank accounts fetched:', data?.length || 0);
-      
       // Create a deep copy of the data to prevent reference issues
       const accountsCopy = data ? JSON.parse(JSON.stringify(data)) : [];
-      
-      console.log('Bank account data (deep copy):', accountsCopy);
       
       // Set accounts with the deep copy
       setBankAccounts(accountsCopy);
@@ -121,9 +116,8 @@ export const useBankAccounts = (user: User | null) => {
       // Calculate total balance
       const total = accountsCopy.reduce((sum, acc) => sum + (acc.balance || 0), 0);
       setTotalBalance(total);
-      console.log('💰 Total balance calculated:', total);
     } catch (error) {
-      console.error('❌ Error fetching bank accounts:', error);
+      console.error('Error fetching bank accounts:', error);
       // Fall back to demo accounts on error
       setDemoAccounts();
     } finally {
@@ -247,14 +241,7 @@ export const useBankAccounts = (user: User | null) => {
   };
 
   const refreshAccounts = async () => {
-    console.log('🔄 Refreshing bank accounts...');
-    console.log('Current accounts before refresh:', bankAccounts);
-    console.log('Current total balance before refresh:', totalBalance);
-    
     await fetchBankAccounts();
-    
-    console.log('Accounts after refresh:', bankAccounts);
-    console.log('Total balance after refresh:', totalBalance);
   };
 
   const syncAccount = async (id: string) => {

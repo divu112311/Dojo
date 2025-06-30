@@ -26,12 +26,17 @@ export const useGoals = (user: User | null) => {
   useEffect(() => {
     if (user && isSupabaseConfigured) {
       fetchGoals();
+    } else {
+      // Set empty goals array if Supabase is not configured
+      setGoals([]);
+      setLoading(false);
     }
   }, [user]);
 
   const fetchGoals = async () => {
     if (!user || !isSupabaseConfigured) {
-      console.warn('Cannot fetch goals: User not authenticated or Supabase not configured');
+      setGoals([]);
+      setLoading(false);
       return;
     }
 

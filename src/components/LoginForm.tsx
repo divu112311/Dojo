@@ -14,6 +14,7 @@ const LoginForm: React.FC = () => {
     lastName: ''
   });
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { signIn, signUp, loading, authError } = useAuth();
 
   // Set error from auth hook
@@ -26,10 +27,12 @@ const LoginForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsSubmitting(true);
 
     // Check if Supabase is configured
     if (!isSupabaseConfigured) {
       setError('Supabase is not configured. Please set up your environment variables.');
+      setIsSubmitting(false);
       return;
     }
 
@@ -39,12 +42,14 @@ const LoginForm: React.FC = () => {
       } else {
         if (!formState.firstName.trim() || !formState.lastName.trim()) {
           setError('First name and last name are required');
+          setIsSubmitting(false);
           return;
         }
         await signUp(formState.email, formState.password, formState.firstName.trim(), formState.lastName.trim());
       }
     } catch (err: any) {
       // Error is already set by the auth hook
+      setIsSubmitting(false);
     }
   };
 
@@ -228,10 +233,10 @@ const LoginForm: React.FC = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
-              disabled={loading || !isSupabaseConfigured}
+              disabled={loading || isSubmitting || !isSupabaseConfigured}
               className="w-full bg-[#2A6F68] text-white py-3 px-4 rounded-lg font-medium hover:bg-[#235A54] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? (
+              {loading || isSubmitting ? (
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}

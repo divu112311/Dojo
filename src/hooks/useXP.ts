@@ -63,8 +63,6 @@ export const useXP = (user: User | null) => {
     try {
       // Skip database operations if Supabase is not configured
       if (!isSupabaseConfigured) {
-        console.log('Supabase not configured, using fallback XP data');
-        
         // Create fallback XP data
         const fallbackXP = {
           id: 'default',
@@ -105,36 +103,13 @@ export const useXP = (user: User | null) => {
             .maybeSingle();
 
           if (xpError) {
-            console.log('Error fetching from xp table:', xpError.message);
-            
-            // Try to create a new XP record
-            try {
-              const { data: newXpData, error: createError } = await supabase
-                .from('xp')
-                .insert({
-                  user_id: user.id,
-                  points: 100,
-                  badges: ['Welcome']
-                })
-                .select()
-                .single();
-                
-              if (createError) {
-                console.error('Error creating XP record:', createError);
-                throw createError;
-              }
-              
-              setXP(newXpData);
-            } catch (createErr) {
-              console.error('Failed to create XP record:', createErr);
-              // Use fallback XP data
-              setXP({
-                id: 'default',
-                user_id: user.id,
-                points: 100,
-                badges: ['Welcome']
-              });
-            }
+            // Use fallback XP data
+            setXP({
+              id: 'default',
+              user_id: user.id,
+              points: 100,
+              badges: ['Welcome']
+            });
           } else {
             setXP(xpData || {
               id: 'default',
@@ -153,30 +128,6 @@ export const useXP = (user: User | null) => {
           points: 100,
           badges: ['Welcome']
         });
-      }
-
-      // Fetch user badges with badge details
-      try {
-        const { data: badgesData, error: badgesError } = await supabase
-          .from('user_badges')
-          .select(`
-            *,
-            badge:badges(*)
-          `)
-          .eq('user_id', user.id);
-
-        if (!badgesError && badgesData) {
-          // Format the badges data
-          const formattedBadges = badgesData.map(item => ({
-            ...item,
-            ...item.badge
-          }));
-          
-          setUserBadges(formattedBadges);
-        }
-      } catch (badgesError) {
-        console.error('Error fetching badges:', badgesError);
-        // Continue without badges
       }
     } catch (error) {
       console.error('Error fetching XP data:', error);
@@ -256,14 +207,6 @@ export const useXP = (user: User | null) => {
             ...prev,
             points: newTotalXP
           } : null);
-        }
-
-        // Record user action
-        try {
-          await recordXPAction(pointsToAdd);
-        } catch (actionError) {
-          console.error('Error recording XP action:', actionError);
-          // Continue even if action recording fails
         }
       } else if (xp) {
         // Fallback to original xp table
@@ -379,37 +322,6 @@ export const useXP = (user: User | null) => {
     } catch (error) {
       console.error('Error awarding badge:', error);
       return false;
-    }
-  };
-
-  const recordXPAction = async (pointsEarned: number) => {
-    if (!user || !isSupabaseConfigured) return;
-
-    try {
-      // Check if user_actions table exists
-      const { count, error } = await supabase
-        .from('user_actions')
-        .select('*', { count: 'exact', head: true });
-
-      if (error) {
-        console.log('user_actions table not available:', error);
-        return;
-      }
-
-      // Record the XP action
-      await supabase
-        .from('user_actions')
-        .insert({
-          user_id: user.id,
-          action_type: 'xp_earned',
-          action_data: {
-            points: pointsEarned,
-            source: 'app_interaction'
-          },
-          source: 'user_initiated'
-        });
-    } catch (error) {
-      console.error('Error recording XP action:', error);
     }
   };
 

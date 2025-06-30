@@ -11,24 +11,17 @@ const hasValidCredentials = supabaseUrl &&
   supabaseUrl.startsWith('https://') &&
   supabaseUrl.includes('.supabase.co');
 
-if (!hasValidCredentials) {
-  console.warn('Supabase credentials not configured. Using placeholder client.');
-  console.log('To connect to Supabase:');
-  console.log('1. Click "Connect to Supabase" button in the top right');
-  console.log('2. Or manually update your .env file with:');
-  console.log('   - VITE_SUPABASE_URL (your project URL)');
-  console.log('   - VITE_SUPABASE_ANON_KEY (your anon key)');
-}
-
-// Log Supabase configuration for debugging
-console.log('=== SUPABASE CONFIGURATION ===');
-console.log('URL:', hasValidCredentials ? supabaseUrl : 'Using fallback URL');
-console.log('Has Anon Key:', !!supabaseAnonKey);
-console.log('Valid Credentials:', hasValidCredentials);
-
+// Create a client with minimal logging
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDUxOTI4MDAsImV4cCI6MTk2MDc2ODgwMH0.placeholder'
+  supabaseAnonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDUxOTI4MDAsImV4cCI6MTk2MDc2ODgwMH0.placeholder',
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  }
 );
 
 // Export a flag to check if Supabase is properly configured

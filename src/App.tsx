@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LoginForm from './components/LoginForm';
 import Dashboard from './components/Dashboard';
@@ -17,6 +17,7 @@ function App() {
   const { xp, enhancedXP, updateXP, getCurrentLevel, getTotalXP, loading: xpLoading } = useXP(user); // Updated hook
   const [activeView, setActiveView] = useState<'dashboard' | 'advisor' | 'learning' | 'community'>('advisor');
   const [showAuth, setShowAuth] = useState(false);
+  const [appReady, setAppReady] = useState(false);
 
   const handleXPUpdate = async (points: number) => {
     await updateXP(points);
@@ -30,7 +31,28 @@ function App() {
     setShowAuth(true);
   };
 
-  if (authLoading || profileLoading || xpLoading) {
+  // Optimize initial loading
+  useEffect(() => {
+    if (!authLoading && user) {
+      // Set a timeout to ensure we don't get stuck in loading state
+      const timeout = setTimeout(() => {
+        setAppReady(true);
+      }, 5000); // 5 second maximum loading time
+      
+      // Check if critical data is loaded
+      if (!profileLoading && !xpLoading) {
+        clearTimeout(timeout);
+        setAppReady(true);
+      }
+      
+      return () => clearTimeout(timeout);
+    } else if (!authLoading && !user) {
+      // If not authenticated, we're ready immediately
+      setAppReady(true);
+    }
+  }, [authLoading, profileLoading, xpLoading, user]);
+
+  if (authLoading || (user && !appReady)) {
     return (
       <div className="min-h-screen bg-[#FAF9F6] flex items-center justify-center">
         <motion.div
