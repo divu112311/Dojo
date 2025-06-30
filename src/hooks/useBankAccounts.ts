@@ -27,17 +27,26 @@ export const useBankAccounts = (user: User | null) => {
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalBalance, setTotalBalance] = useState(0);
+  const [isUsingDemoData, setIsUsingDemoData] = useState(false);
+  const [demoDataInitialized, setDemoDataInitialized] = useState(false);
 
   useEffect(() => {
     if (user && isSupabaseConfigured) {
+      console.log('DIAGNOSTIC: User authenticated and Supabase configured, fetching real accounts');
       fetchBankAccounts();
     } else if (user) {
       // Set demo data if user is logged in but Supabase is not configured
-      setDemoAccounts();
+      console.log('DIAGNOSTIC: User authenticated but Supabase not configured, using demo accounts');
+      if (!demoDataInitialized) {
+        setDemoAccounts();
+        setDemoDataInitialized(true);
+      }
+      setIsUsingDemoData(true);
     }
   }, [user]);
 
   const setDemoAccounts = () => {
+    console.log('DIAGNOSTIC: Setting demo accounts');
     const demoAccounts: BankAccount[] = [
       {
         id: 'demo-checking',
@@ -81,6 +90,7 @@ export const useBankAccounts = (user: User | null) => {
       }
     ];
     
+    console.log('DIAGNOSTIC: Demo accounts data:', demoAccounts);
     setBankAccounts(demoAccounts);
     setTotalBalance(demoAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0));
     setLoading(false);
@@ -91,6 +101,7 @@ export const useBankAccounts = (user: User | null) => {
 
     console.log('=== FETCHING BANK ACCOUNTS ===');
     console.log('User ID:', user.id);
+    console.log('DIAGNOSTIC: isSupabaseConfigured:', isSupabaseConfigured);
 
     setLoading(true);
     try {
@@ -103,24 +114,45 @@ export const useBankAccounts = (user: User | null) => {
 
       if (error) {
         console.error('❌ Error fetching bank accounts:', error);
+        console.log('DIAGNOSTIC: Falling back to demo accounts due to error');
         // Fall back to demo accounts on error
-        setDemoAccounts();
+        if (!demoDataInitialized) {
+          setDemoAccounts();
+          setDemoDataInitialized(true);
+        }
+        setIsUsingDemoData(true);
         return;
       }
 
       console.log('✅ Bank accounts fetched:', data?.length || 0);
-      console.log('Bank account data:', data);
+      console.log('DIAGNOSTIC: Bank account data:', data);
       
-      setBankAccounts(data || []);
-      
-      // Calculate total balance
-      const total = (data || []).reduce((sum, acc) => sum + (acc.balance || 0), 0);
-      setTotalBalance(total);
-      console.log('💰 Total balance calculated:', total);
+      if (data && data.length > 0) {
+        setBankAccounts(data);
+        setIsUsingDemoData(false);
+        
+        // Calculate total balance
+        const total = data.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+        setTotalBalance(total);
+        console.log('💰 Total balance calculated:', total);
+        console.log('DIAGNOSTIC: Total balance set to:', total);
+      } else {
+        console.log('DIAGNOSTIC: No accounts found, using demo accounts');
+        if (!demoDataInitialized) {
+          setDemoAccounts();
+          setDemoDataInitialized(true);
+        }
+        setIsUsingDemoData(true);
+      }
     } catch (error) {
       console.error('❌ Error fetching bank accounts:', error);
+      console.log('DIAGNOSTIC: Falling back to demo accounts due to exception');
       // Fall back to demo accounts on error
-      setDemoAccounts();
+      if (!demoDataInitialized) {
+        setDemoAccounts();
+        setDemoDataInitialized(true);
+      }
+      setIsUsingDemoData(true);
     } finally {
       setLoading(false);
     }
@@ -235,6 +267,24 @@ export const useBankAccounts = (user: User | null) => {
 
   const refreshAccounts = async () => {
     console.log('🔄 Refreshing bank accounts...');
+    console.log('DIAGNOSTIC: refreshAccounts called, isUsingDemoData:', isUsingDemoData);
+    
+    if (isUsingDemoData) {
+      console.log('DIAGNOSTIC: Using demo data, only updating timestamps');
+      // If using demo data, just update the timestamps, not the balances
+      const updatedAccounts = bankAccounts.map(account => ({
+        ...account,
+        last_synced_at: new Date().toISOString(),
+        last_updated: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }));
+      
+      console.log('DIAGNOSTIC: Updated demo accounts with new timestamps only');
+      setBankAccounts(updatedAccounts);
+      return;
+    }
+    
+    // Otherwise, fetch real data
     await fetchBankAccounts();
   };
 
@@ -242,6 +292,20 @@ export const useBankAccounts = (user: User | null) => {
     if (!user) return false;
 
     try {
+      if (isUsingDemoData) {
+        console.log('DIAGNOSTIC: Using demo data, only updating timestamps for sync');
+        // If using demo data, just update the timestamps for this account
+        setBankAccounts(prev => prev.map(account => 
+          account.id === id ? {
+            ...account,
+            last_synced_at: new Date().toISOString(),
+            last_updated: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          } : account
+        ));
+        return true;
+      }
+      
       if (isSupabaseConfigured) {
         const { error } = await supabase
           .from('bank_accounts')
@@ -277,5 +341,6 @@ export const useBankAccounts = (user: User | null) => {
     refreshAccounts,
     syncAccount,
     refetch: fetchBankAccounts,
+    isUsingDemoData
   };
 };
