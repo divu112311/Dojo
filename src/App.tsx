@@ -4,6 +4,7 @@ import LoginForm from './components/LoginForm';
 import Dashboard from './components/Dashboard';
 import ChatInterface from './components/ChatInterface';
 import LearningCenter from './components/LearningCenter';
+import CommunityPage from './components/CommunityPage';
 import LandingPage from './components/LandingPage';
 import { useAuth } from './hooks/useAuth';
 import { useUserProfile } from './hooks/useUserProfile';
@@ -14,7 +15,7 @@ function App() {
   const { user, loading: authLoading, signOut } = useAuth();
   const { profile, loading: profileLoading, getDisplayName } = useUserProfile(user);
   const { xp, enhancedXP, updateXP, getCurrentLevel, getTotalXP, loading: xpLoading } = useXP(user); // Updated hook
-  const [activeView, setActiveView] = useState<'dashboard' | 'advisor' | 'learning'>('advisor');
+  const [activeView, setActiveView] = useState<'dashboard' | 'advisor' | 'learning' | 'community'>('advisor');
   const [showAuth, setShowAuth] = useState(false);
 
   const handleXPUpdate = async (points: number) => {
@@ -116,6 +117,16 @@ function App() {
                 >
                   Finance Kata
                 </button>
+                <button
+                  onClick={() => setActiveView('community')}
+                  className={`px-4 py-2 rounded-lg transition-all ${
+                    activeView === 'community'
+                      ? 'bg-[#2A6F68] text-white'
+                      : 'text-[#333333] hover:bg-gray-100'
+                  }`}
+                >
+                  Community Dojo
+                </button>
               </nav>
               
               <button
@@ -152,7 +163,7 @@ function App() {
             >
               <Dashboard user={user} xp={{ points: totalXP, badges: xp?.badges || [] }} />
             </motion.div>
-          ) : (
+          ) : activeView === 'learning' ? (
             <motion.div
               key="learning"
               initial={{ opacity: 0, x: 20 }}
@@ -161,6 +172,16 @@ function App() {
               transition={{ duration: 0.3 }}
             >
               <LearningCenter user={user} xp={{ points: totalXP, badges: xp?.badges || [] }} onXPUpdate={handleXPUpdate} />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="community"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <CommunityPage user={user} onXPUpdate={handleXPUpdate} />
             </motion.div>
           )}
         </AnimatePresence>
