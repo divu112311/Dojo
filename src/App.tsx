@@ -10,6 +10,7 @@ import { useAuth } from './hooks/useAuth';
 import { useUserProfile } from './hooks/useUserProfile';
 import { useXP } from './hooks/useXP'; // Updated import
 import doughjoMascot from './assets/doughjo-mascot.png';
+import boltImage from './assets/bolt.png';
 
 function App() {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -109,6 +110,11 @@ function App() {
 
             <div className="flex items-center space-x-4">
               <nav className="flex space-x-2">
+                <img 
+                  src={boltImage} 
+                  alt="Bolt" 
+                  className="h-6 w-auto mr-1"
+                />
                 <button
                   onClick={() => setActiveView('advisor')}
                   className={`px-4 py-2 rounded-lg transition-all ${
