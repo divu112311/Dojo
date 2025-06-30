@@ -388,7 +388,7 @@ const CommunityPage: React.FC<CommunityPageProps> = ({ user, onXPUpdate }) => {
       userId: '2',
       userName: 'Michael Chen',
       userAvatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150',
-      content: 'Weekly tip: I\'ve been using the "envelope method\" for discretionary spending and it's been a game-changer. No more end-of-month surprises!',
+      content: 'Weekly tip: I\'ve been using the "envelope method\" for discretionary spending and it\'s been a game-changer. No more end-of-month surprises!',
       likes: 18,
       comments: 5,
       shares: 8,
