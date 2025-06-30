@@ -37,6 +37,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onXPUpdate }) => {
     const message = inputMessage.trim();
     setInputMessage('');
 
+    console.log('Sending message:', message);
+    console.log('Current user:', user?.id);
+
     await sendMessage(message, (points) => {
       setXpGained(points);
       onXPUpdate(points);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
@@ -54,14 +54,14 @@ export const useChat = (user: User | null) => {
     
     const demoMessages: ChatMessage[] = [
       {
-        id: 'demo-msg-1',
+        id: 'local-' + Date.now(),
         user_id: user?.id || null,
         message: 'Hi! I need help creating a budget. Where should I start?',
         sender: 'user',
         timestamp: tenMinutesAgo.toISOString()
       },
       {
-        id: 'demo-msg-2',
+        id: 'local-' + (Date.now() + 1),
         user_id: user?.id || null,
         message: 'Great question! Let\'s start with the 50/30/20 rule. Track your monthly income first, then allocate 50% to needs like rent and groceries, 30% to wants like entertainment, and 20% to savings and debt payments. What\'s your monthly take-home income?',
         sender: 'assistant',
@@ -316,6 +316,12 @@ export const useChat = (user: User | null) => {
 
         // Call AI API through Supabase Edge Function
         console.log('Calling AI Edge Function...');
+        console.log('Request payload:', {
+          message: message.trim(),
+          userId: user.id,
+          sessionId: currentSessionId
+        });
+        
         const startTime = Date.now();
         const { data: aiResponseData, error: aiError } = await supabase.functions.invoke('chat-ai', {
           body: {
@@ -402,6 +408,11 @@ export const useChat = (user: User | null) => {
 
         // Call AI API through Supabase Edge Function
         console.log('Calling AI Edge Function...');
+        console.log('Request payload:', {
+          message: message.trim(),
+          userId: user.id
+        });
+        
         const startTime = Date.now();
         const { data: aiResponseData, error: aiError } = await supabase.functions.invoke('chat-ai', {
           body: {
