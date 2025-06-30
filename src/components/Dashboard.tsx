@@ -587,13 +587,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, xp }) => {
         transition={{ delay: 0.3 }}
         className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200"
       >
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-[#333333]">Financial Goals</h2>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowGoalsModal(true)}
-            className="flex items-center space-x-2 bg-[#2A6F68] text-white px-4 py-2 rounded-lg hover:bg-[#235A54] transition-colors"
+            className="flex items-center space-x-2 bg-[#2A6F68] text-white px-3 py-1.5 rounded-lg hover:bg-[#235A54] transition-colors text-sm"
           >
             <Plus className="h-4 w-4" />
             <span>New Goal</span>
@@ -601,7 +601,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, xp }) => {
         </div>
 
         {goalsLoading ? (
-          <div className="flex items-center justify-center py-8">
+          <div className="flex items-center justify-center py-6">
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
@@ -609,12 +609,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, xp }) => {
             />
           </div>
         ) : goals.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="w-16 h-16 bg-[#2A6F68]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Target className="h-8 w-8 text-[#2A6F68]" />
+          <div className="text-center py-6">
+            <div className="w-14 h-14 bg-[#2A6F68]/10 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Target className="h-7 w-7 text-[#2A6F68]" />
             </div>
             <h3 className="text-lg font-semibold text-[#333333] mb-2">No Goals Yet</h3>
-            <p className="text-gray-600 mb-4">Start your financial journey by setting your first goal</p>
+            <p className="text-gray-600 mb-4 max-w-md mx-auto text-sm">
+              Start your financial journey by setting your first goal
+            </p>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -626,10 +628,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, xp }) => {
             </motion.button>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Goal Cards */}
-            <div className="space-y-4">
-              {goals.map((goal, index) => {
+            <div className="space-y-3">
+              {goals.slice(0, 3).map((goal, index) => {
                 const progress = getProgressPercentage(goal.saved_amount || goal.current_amount || 0, goal.target_amount || 0);
                 const remaining = (goal.target_amount || 0) - (goal.saved_amount || goal.current_amount || 0);
                 
@@ -639,27 +641,27 @@ const Dashboard: React.FC<DashboardProps> = ({ user, xp }) => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 + index * 0.1 }}
-                    className="bg-gray-50 rounded-xl p-6"
+                    className="bg-gray-50 rounded-xl p-4"
                   >
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-[#333333]">{goal.name}</h3>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-base font-semibold text-[#333333]">{goal.name}</h3>
                       <div className="text-right">
-                        <div className="text-lg font-bold text-[#333333]">
+                        <div className="text-base font-bold text-[#333333]">
                           {formatCurrency(goal.saved_amount || goal.current_amount || 0)} / {formatCurrency(goal.target_amount || 0)}
                         </div>
                       </div>
                     </div>
 
-                    <div className="mb-4">
-                      <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
+                    <div className="mb-1">
+                      <div className="w-full bg-gray-200 rounded-full h-2 mb-1">
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${progress}%` }}
                           transition={{ delay: 0.5 + index * 0.1, duration: 1 }}
-                          className="h-3 rounded-full bg-[#2A6F68]"
+                          className="h-2 rounded-full bg-[#2A6F68]"
                         />
                       </div>
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center justify-between text-xs">
                         <span className="text-gray-600">{progress.toFixed(0)}% complete</span>
                         <span className="text-gray-600">{formatCurrency(remaining)} to go</span>
                       </div>
@@ -667,6 +669,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, xp }) => {
                   </motion.div>
                 );
               })}
+              
+              {goals.length > 3 && (
+                <div className="text-center mt-2">
+                  <button 
+                    onClick={() => setShowGoalsModal(true)}
+                    className="text-[#2A6F68] text-sm font-medium hover:underline"
+                  >
+                    View all {goals.length} goals
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Goal Insights */}
@@ -674,10 +687,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, xp }) => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="bg-[#2A6F68]/5 rounded-xl p-6 border-l-4 border-[#2A6F68]"
+              className="bg-[#2A6F68]/5 rounded-xl p-4 border-l-4 border-[#2A6F68] mt-2"
             >
-              <h3 className="text-lg font-semibold text-[#2A6F68] mb-3">Goal Insight</h3>
-              <p className="text-gray-700 text-sm leading-relaxed">
+              <h3 className="text-base font-semibold text-[#2A6F68] mb-2">Goal Insight</h3>
+              <p className="text-sm text-gray-700 leading-relaxed">
                 {overallProgress >= 80 ? 
                   `You're ${overallProgress.toFixed(0)}% of the way to your emergency fund goal. At your current savings rate, you'll reach your target in approximately 3 months. Keep up the excellent work!` :
                   overallProgress >= 50 ?
@@ -709,7 +722,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, xp }) => {
               onClick={(e) => e.stopPropagation()}
               className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden"
             >
-              <div className="p-6 border-b border-gray-200">
+              <div className="p-4 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold text-[#333333]">Manage Financial Goals</h2>
                   <button
@@ -720,7 +733,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, xp }) => {
                   </button>
                 </div>
               </div>
-              <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              <div className="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
                 <GoalsManager user={user} />
               </div>
             </motion.div>

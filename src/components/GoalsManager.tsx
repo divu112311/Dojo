@@ -232,18 +232,18 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ user, onXPUpdate }) => {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-[#333333] mb-2">Financial Goals</h2>
-          <p className="text-gray-600">Track your progress toward financial milestones</p>
+          <h2 className="text-xl font-bold text-[#333333] mb-1">Financial Goals</h2>
+          <p className="text-sm text-gray-600">Track your progress toward financial milestones</p>
         </div>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => handleOpenForm()}
-          className="flex items-center space-x-2 bg-[#2A6F68] text-white px-4 py-2 rounded-lg hover:bg-[#235A54] transition-colors"
+          className="flex items-center space-x-2 bg-[#2A6F68] text-white px-3 py-1.5 rounded-lg hover:bg-[#235A54] transition-colors text-sm"
         >
           <Plus className="h-4 w-4" />
           <span>New Goal</span>
@@ -257,10 +257,10 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ user, onXPUpdate }) => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="bg-white rounded-xl p-6 shadow-sm border border-gray-200"
+            className="bg-white rounded-xl p-4 shadow-sm border border-gray-200"
           >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-[#333333]">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-semibold text-[#333333]">
                 {editingGoal ? 'Edit Goal' : 'Create New Goal'}
               </h3>
               <button
@@ -271,7 +271,7 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ user, onXPUpdate }) => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {/* Goal Name */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-[#333333] mb-1">
@@ -442,24 +442,24 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ user, onXPUpdate }) => {
 
       {/* Goals Grid */}
       {loading ? (
-        <div className="flex items-center justify-center py-12">
+        <div className="flex items-center justify-center py-6">
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="w-8 h-8 border-2 border-[#2A6F68] border-t-transparent rounded-full"
+            className="w-6 h-6 border-2 border-[#2A6F68] border-t-transparent rounded-full"
           />
         </div>
       ) : goals.length === 0 ? (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center py-12 bg-white rounded-xl border-2 border-dashed border-gray-300"
+          className="text-center py-8 bg-white rounded-xl border-2 border-dashed border-gray-300"
         >
-          <div className="w-16 h-16 bg-[#2A6F68]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Target className="h-8 w-8 text-[#2A6F68]" />
+          <div className="w-12 h-12 bg-[#2A6F68]/10 rounded-full flex items-center justify-center mx-auto mb-3">
+            <Target className="h-6 w-6 text-[#2A6F68]" />
           </div>
-          <h3 className="text-xl font-semibold text-[#333333] mb-2">No Goals Yet</h3>
-          <p className="text-gray-600 mb-6 max-w-md mx-auto">
+          <h3 className="text-lg font-semibold text-[#333333] mb-1">No Goals Yet</h3>
+          <p className="text-gray-600 mb-4 max-w-md mx-auto text-sm">
             Start your financial journey by setting your first goal. Whether it's an emergency fund, 
             vacation, or dream home - every goal begins with a single step.
           </p>
@@ -467,7 +467,7 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ user, onXPUpdate }) => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => handleOpenForm()}
-            className="inline-flex items-center space-x-2 bg-[#2A6F68] text-white px-6 py-3 rounded-lg hover:bg-[#235A54] transition-colors"
+            className="inline-flex items-center space-x-2 bg-[#2A6F68] text-white px-4 py-2 rounded-lg hover:bg-[#235A54] transition-colors"
           >
             <Plus className="h-4 w-4" />
             <span>Create Your First Goal</span>
@@ -475,7 +475,7 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ user, onXPUpdate }) => {
         </motion.div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <AnimatePresence>
               {goals.map((goal, index) => {
                 const categoryInfo = getCategoryInfo(goal.goal_type || 'savings');
@@ -494,54 +494,52 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ user, onXPUpdate }) => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ delay: index * 0.1 }}
-                    className={`bg-white rounded-xl p-6 shadow-sm border-2 transition-all hover:shadow-md ${
+                    className={`bg-white rounded-xl p-4 shadow-sm border transition-all hover:shadow-md ${
                       isCompleted ? 'border-green-200 bg-green-50' : 'border-gray-200'
                     }`}
                   >
                     {/* Header */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-12 h-12 bg-gradient-to-r ${categoryInfo.color} rounded-lg flex items-center justify-center`}>
-                          <CategoryIcon className="h-6 w-6 text-white" />
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center space-x-2">
+                        <div className={`w-10 h-10 bg-gradient-to-r ${categoryInfo.color} rounded-lg flex items-center justify-center`}>
+                          <CategoryIcon className="h-5 w-5 text-white" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-[#333333] text-lg">{goal.name}</h3>
-                          <p className="text-sm text-gray-600">{categoryInfo.label}</p>
+                          <h3 className="font-semibold text-[#333333] text-base">{goal.name}</h3>
+                          <div className="flex items-center space-x-1 text-xs">
+                            <span className="text-gray-600">{categoryInfo.label}</span>
+                            <span className="text-gray-400">•</span>
+                            <span className={`${priorityInfo.color} px-1.5 py-0.5 rounded-full text-xs font-medium`}>
+                              {priorityInfo.label.split(' ')[0]}
+                            </span>
+                          </div>
                         </div>
                       </div>
                       
-                      <div className="flex flex-col items-end space-y-1">
-                        <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}>
-                          <span>{statusInfo.label}</span>
-                        </div>
-                        <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${priorityInfo.color}`}>
-                          <PriorityIcon className="h-3 w-3" />
-                          <span>{priorityInfo.label.split(' ')[0]}</span>
-                        </div>
+                      <div className={`flex items-center space-x-1 px-2 py-0.5 rounded-full text-xs font-medium ${statusInfo.color}`}>
+                        <span>{statusInfo.label}</span>
                       </div>
                     </div>
 
-                    {/* Description */}
-                    {goal.description && (
-                      <p className="text-sm text-gray-600 mb-4">{goal.description}</p>
-                    )}
-
                     {/* Progress */}
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-[#333333]">
-                          {formatCurrency(goal.saved_amount || goal.current_amount || 0)} of {formatCurrency(goal.target_amount || 0)}
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between mb-1 text-sm">
+                        <span className="font-medium text-[#333333]">
+                          {formatCurrency(goal.saved_amount || goal.current_amount || 0)}
                         </span>
-                        <span className="text-sm font-medium text-[#2A6F68]">
-                          {progress.toFixed(1)}%
-                        </span>
+                        <div className="flex items-center space-x-1">
+                          <span className="text-gray-600">of {formatCurrency(goal.target_amount || 0)}</span>
+                          <span className="text-[#2A6F68] font-medium">
+                            ({progress.toFixed(0)}%)
+                          </span>
+                        </div>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div className="w-full bg-gray-200 rounded-full h-2">
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${progress}%` }}
                           transition={{ duration: 1, ease: "easeOut" }}
-                          className={`h-3 rounded-full ${
+                          className={`h-2 rounded-full ${
                             isCompleted 
                               ? 'bg-gradient-to-r from-green-400 to-green-600' 
                               : `bg-gradient-to-r ${categoryInfo.color}`
@@ -550,41 +548,38 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ user, onXPUpdate }) => {
                       </div>
                     </div>
 
-                    {/* Deadline */}
-                    {(goal.deadline || goal.target_date) && (
-                      <div className="flex items-center space-x-2 mb-4 text-sm">
-                        <Calendar className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-600">{formatDate(goal.deadline || goal.target_date || '')}</span>
-                        {daysLeft !== null && (
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            daysLeft < 0 ? 'bg-red-100 text-red-700' :
-                            daysLeft < 30 ? 'bg-orange-100 text-orange-700' :
-                            'bg-blue-100 text-blue-700'
-                          }`}>
-                            {daysLeft < 0 ? 'Overdue' : 
-                             daysLeft === 0 ? 'Today' :
-                             daysLeft === 1 ? '1 day left' :
-                             `${daysLeft} days left`}
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Quick Progress Update */}
-                    <div className="mb-4">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Update Progress
-                      </label>
-                      <div className="flex items-center space-x-2">
+                    {/* Deadline & Quick Update */}
+                    <div className="flex items-center justify-between mb-3">
+                      {/* Deadline */}
+                      {(goal.deadline || goal.target_date) && (
+                        <div className="flex items-center space-x-1 text-xs">
+                          <Calendar className="h-3 w-3 text-gray-500" />
+                          <span className="text-gray-600">{formatDate(goal.deadline || goal.target_date || '')}</span>
+                          {daysLeft !== null && daysLeft >= 0 && (
+                            <span className={`px-1.5 py-0.5 rounded text-xs ${
+                              daysLeft < 7 ? 'bg-red-100 text-red-700' :
+                              daysLeft < 30 ? 'bg-orange-100 text-orange-700' :
+                              'bg-blue-100 text-blue-700'
+                            }`}>
+                              {daysLeft === 0 ? 'Today' :
+                               daysLeft === 1 ? '1 day' :
+                               `${daysLeft} days`}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Quick Progress Update */}
+                      <div className="flex items-center space-x-1">
                         <input
                           type="number"
                           min="0"
                           max={goal.target_amount || 0}
                           value={goal.saved_amount || goal.current_amount || 0}
                           onChange={(e) => handleUpdateProgress(goal.id, parseFloat(e.target.value) || 0)}
-                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-[#2A6F68] focus:border-transparent"
+                          className="w-20 px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-[#2A6F68] focus:border-transparent"
                         />
-                        <TrendingUp className="h-4 w-4 text-[#2A6F68]" />
+                        <TrendingUp className="h-3 w-3 text-[#2A6F68]" />
                       </div>
                     </div>
 
@@ -594,7 +589,7 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ user, onXPUpdate }) => {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleOpenForm(goal)}
-                        className="flex-1 flex items-center justify-center space-x-1 bg-gray-100 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                        className="flex-1 flex items-center justify-center space-x-1 bg-gray-100 text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-200 transition-colors text-xs"
                       >
                         <Edit3 className="h-3 w-3" />
                         <span>Edit</span>
@@ -603,7 +598,7 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ user, onXPUpdate }) => {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleDelete(goal.id)}
-                        className="flex items-center justify-center bg-red-100 text-red-700 px-3 py-2 rounded-lg hover:bg-red-200 transition-colors"
+                        className="flex items-center justify-center bg-red-100 text-red-700 px-2 py-1.5 rounded-lg hover:bg-red-200 transition-colors"
                       >
                         <Trash2 className="h-3 w-3" />
                       </motion.button>
@@ -614,56 +609,47 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ user, onXPUpdate }) => {
             </AnimatePresence>
           </div>
 
-          {/* Goal Insights */}
+          {/* Goal Insights - More Compact */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="bg-white rounded-xl p-6 shadow-sm border border-gray-200"
+            className="bg-white rounded-xl p-4 shadow-sm border border-gray-200 mt-4"
           >
-            <div className="flex items-center space-x-2 mb-4">
-              <Lightbulb className="h-5 w-5 text-[#B76E79]" />
-              <h3 className="text-lg font-semibold text-[#333333]">Goal Insights</h3>
+            <div className="flex items-center space-x-2 mb-3">
+              <Lightbulb className="h-4 w-4 text-[#B76E79]" />
+              <h3 className="text-base font-semibold text-[#333333]">Goal Insights</h3>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <div className="text-center p-4 bg-[#2A6F68]/5 rounded-lg">
-                <div className="text-2xl font-bold text-[#2A6F68] mb-1">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+              <div className="text-center p-3 bg-[#2A6F68]/5 rounded-lg">
+                <div className="text-xl font-bold text-[#2A6F68] mb-0">
                   {overallProgress.toFixed(0)}%
                 </div>
-                <div className="text-sm text-gray-600">Overall Progress</div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {formatCurrency(totalSavedAmount)} of {formatCurrency(totalTargetAmount)}
-                </div>
+                <div className="text-xs text-gray-600">Overall Progress</div>
               </div>
 
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <div className="text-2xl font-bold text-green-600 mb-1">
+              <div className="text-center p-3 bg-green-50 rounded-lg">
+                <div className="text-xl font-bold text-green-600 mb-0">
                   {completedGoals.length}
                 </div>
-                <div className="text-sm text-gray-600">Goals Completed</div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {goals.length > 0 ? ((completedGoals.length / goals.length) * 100).toFixed(0) : 0}% completion rate
-                </div>
+                <div className="text-xs text-gray-600">Goals Completed</div>
               </div>
 
-              <div className="text-center p-4 bg-orange-50 rounded-lg">
-                <div className="text-2xl font-bold text-orange-600 mb-1">
+              <div className="text-center p-3 bg-orange-50 rounded-lg">
+                <div className="text-xl font-bold text-orange-600 mb-0">
                   {nearDeadlineGoals.length}
                 </div>
-                <div className="text-sm text-gray-600">Due Soon</div>
-                <div className="text-xs text-gray-500 mt-1">
-                  Within 30 days
-                </div>
+                <div className="text-xs text-gray-600">Due Soon</div>
               </div>
             </div>
 
-            <div className="p-4 bg-gradient-to-r from-[#2A6F68]/5 to-[#B76E79]/5 rounded-lg border-l-4 border-[#2A6F68]">
-              <div className="flex items-start space-x-3">
-                <TrendingUp className="h-5 w-5 text-[#2A6F68] mt-0.5 flex-shrink-0" />
+            <div className="p-3 bg-gradient-to-r from-[#2A6F68]/5 to-[#B76E79]/5 rounded-lg border-l-4 border-[#2A6F68]">
+              <div className="flex items-start space-x-2">
+                <TrendingUp className="h-4 w-4 text-[#2A6F68] mt-0.5 flex-shrink-0" />
                 <div>
-                  <h4 className="font-semibold text-[#333333] mb-1">Financial Wisdom</h4>
-                  <p className="text-sm text-gray-700">
+                  <h4 className="font-medium text-[#333333] text-sm mb-1">Financial Wisdom</h4>
+                  <p className="text-xs text-gray-700 leading-relaxed">
                     {overallProgress >= 80 ? 
                       "Excellent progress! You're demonstrating strong financial discipline. Consider setting stretch goals to maintain momentum." :
                       overallProgress >= 50 ?
