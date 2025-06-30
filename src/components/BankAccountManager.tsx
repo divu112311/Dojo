@@ -123,6 +123,17 @@ const BankAccountManager: React.FC<BankAccountManagerProps> = ({ user }) => {
     await syncAccount(accountId);
   };
 
+  const handleRefreshAccounts = async () => {
+    console.log('Refresh button clicked');
+    console.log('Current accounts before refresh:', bankAccounts);
+    console.log('Current total balance:', totalBalance);
+    
+    await refreshAccounts();
+    
+    console.log('Accounts after refresh:', bankAccounts);
+    console.log('New total balance:', totalBalance);
+  };
+
   const handleConnectAccount = () => {
     console.log('Connect account clicked');
     console.log('Plaid script loaded:', plaidScriptLoaded);
@@ -133,17 +144,6 @@ const BankAccountManager: React.FC<BankAccountManagerProps> = ({ user }) => {
     });
     
     openPlaidLink();
-  };
-
-  const handleRefreshAccounts = async () => {
-    console.log('Refresh button clicked');
-    console.log('Current accounts before refresh:', bankAccounts);
-    console.log('Current total balance:', totalBalance);
-    
-    await refreshAccounts();
-    
-    console.log('Accounts after refresh:', bankAccounts);
-    console.log('New total balance:', totalBalance);
   };
 
   return (
