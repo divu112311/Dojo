@@ -274,8 +274,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn }) => 
               </div>
 
               <h1 className="text-5xl lg:text-6xl font-serif font-bold text-[#333333] mb-6 leading-tight">
-                Master Your Money with Your
-                <span className="bg-gradient-to-r from-[#2A6F68] to-[#B76E79] bg-clip-text text-transparent"> AI Sensei</span>
+                Master Your Money
+                <span className="bg-gradient-to-r from-[#2A6F68] to-[#B76E79] bg-clip-text text-transparent"> In 5 Minutes A Day</span>
               </h1>
 
               <p className="text-xl text-gray-600 mb-8 leading-relaxed">
